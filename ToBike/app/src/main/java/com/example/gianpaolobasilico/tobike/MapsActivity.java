@@ -4,13 +4,7 @@ import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
 import android.widget.Toast;
 
 import com.android.volley.DefaultRetryPolicy;
@@ -23,6 +17,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.maps.android.clustering.ClusterManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -38,16 +33,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ProgressDialog pDialog;
     private String jsonResponse;
     private List stazioni;
-    private DrawerLayout mDrawerLayout;
-    private ListView mDrawerList;
-    private String[] mPlanetTitles;
-    private ActionBarDrawerToggle mDrawerToggle;
-    private CharSequence mDrawerTitle;
-    private CharSequence mTitle;
-    private Toolbar toolbar;
+
 
 
     String url = "http://api.citybik.es/to-bike.json";
+    // Declare a variable for the cluster manager.
+    private ClusterManager<MyItem> mClusterManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,41 +55,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         stazioni= new ArrayList<MarkerOptions>();
 
 
-        //navigationDrawer
-        mPlanetTitles = new String[]{"preferiti", "impostazioni",};
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        mDrawerList = (ListView) findViewById(R.id.left_drawer);
-
-        //get toolbar from xml
-        toolbar=(Toolbar)findViewById(R.id.toolbar);
-        // Set the adapter for the list view
-        mDrawerList.setAdapter(new ArrayAdapter<String>(this,
-                R.layout.drawer_list_item, mPlanetTitles));
-        // Set the list's click listener
-        //mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
-
-        mDrawerTitle=mTitle="titolo";
-        mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,toolbar
-                , R.string.navigation_drawer_open, R.string.navigation_drawer_closed) {
-
-           // Called when a drawer has settled in a completely closed state.
-            public void onDrawerClosed(View view) {
-                super.onDrawerClosed(view);
-                getActionBar().setTitle(mTitle);
-                invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
-            }
-
-            //Called when a drawer has settled in a completely open state.
-            public void onDrawerOpened(View drawerView) {
-                super.onDrawerOpened(drawerView);
-                getActionBar().setTitle(mDrawerTitle);
-                invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
-            }
-        };
 
 
 
+    }
 
+
+    private void setUpClusterer() {
+
+        // Position the map.
+     //   getMap().moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(51.503186, -0.126446), 10));
+
+        // Initialize the manager with the context and the map.
+        // (Activity extends context, so we can pass 'this' in the constructor.)
+        mClusterManager = new ClusterManager<MyItem>(this, getMap());
+        // Point the map's listeners at the listeners implemented by the cluster
+        // manager.
+        getMap().setOnCameraChangeListener(mClusterManager);
+        getMap().setOnMarkerClickListener(mClusterManager);
+
+        // Add cluster items (markers) to the cluster manager.
+       // addItems();
+    }
+
+    private void addItems() {
+
+        // Set some lat/lng coordinates to start with.
+        double lat = 51.5145160;
+        double lng = -0.1270060;
+
+        // Add ten cluster items in close proximity, for purposes of this example.
+        for (int i = 0; i < 10; i++) {
+            double offset = i / 60d;
+            lat = lat + offset;
+            lng = lng + offset;
+            MyItem offsetItem = new MyItem(lat, lng);
+            mClusterManager.addItem(offsetItem);
+        }
     }
 
 
@@ -126,12 +119,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        setUpClusterer();
 
-       doReq();
+        doReq();
 
         LatLng torino = new LatLng(45.01, 7.65);
         mMap.moveCamera(CameraUpdateFactory.newLatLng(torino));
-        mMap.addMarker(new MarkerOptions().position(torino));
 
     }
 
@@ -139,7 +132,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         JsonArrayRequest req = new JsonArrayRequest(url,
                 new Response.Listener<JSONArray>() {
                     @Override
-                    public void onResponse(JSONArray response) { Log.d("ciao",response.toString());
+                    public void onResponse(JSONArray response) {
+                        Log.d("ciao",response.toString());
                         try {
                             // Parsing json array response
                             // loop through each json object
@@ -152,7 +146,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 String id = person.getString("id");
                                 String name = person.getString("name");
                                 double lat = person.getDouble("lat");
+                                lat=lat/1e6;
                                 double lng = person.getDouble("lng");
+                                lng=lng/1e6;
                                 String bikes = person.getString("bikes");
                                 String free = person.getString("free");
                                 String timestamp=person.getString("timestamp");
@@ -165,9 +161,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 jsonResponse += "free: " + free + "\n\n";
                                 jsonResponse += "timestamp: " + timestamp + "\n\n";
 
-                                MarkerOptions mo = new MarkerOptions().position(new LatLng(lat/1e6,lng/1e6));
+                                MarkerOptions mo = new MarkerOptions().position(new LatLng(lat,lng));
                                 mo.title(name);
-                                mMap.addMarker(mo);
+                                MyItem item = new MyItem(lat, lng);
+                                mClusterManager.addItem(item);
+                               // getMap().addMarker(mo);
                                 Log.d("ciao", mo.getPosition().toString());
 
 
@@ -192,10 +190,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        req.setRetryPolicy(new DefaultRetryPolicy(20000,1,1.0f));
+        req.setRetryPolicy(new DefaultRetryPolicy(20000, 1, 1.0f));
         MySingleton.getInstance(this).addToRequestQueue(req);
+    }
 
-
-
+    public GoogleMap getMap() {
+        return mMap;
     }
 }
