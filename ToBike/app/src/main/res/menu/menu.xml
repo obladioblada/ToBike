@@ -1,18 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_height="match_parent"
     android:layout_width="wrap_content"
-    >
+    tools:context=".MapsActivity">
+
+
+
+
+
 
     <!-- "Mark Favorite", should appear as action button if possible -->
     <item
-        android:id="@+id/action_favorite"
-        android:icon="@drawable/ic_menu_black_24dp"
-        android:title="toogle"
-        app:showAsAction="ifRoom"
+        android:id="@+id/search"
+        android:icon="@drawable/ic_mic_black_48dp"
+        android:title="search"
+        app:showAsAction="always"
         android:layout_height="match_parent"
         android:layout_width="wrap_content"
+        android:layout_gravity="right"
         />
 
 </menu>

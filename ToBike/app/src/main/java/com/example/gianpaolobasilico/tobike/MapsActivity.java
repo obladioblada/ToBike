@@ -1,10 +1,18 @@
 package com.example.gianpaolobasilico.tobike;
 
 import android.app.ProgressDialog;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v4.app.FragmentActivity;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import com.android.volley.DefaultRetryPolicy;
@@ -17,7 +25,6 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.maps.android.clustering.ClusterManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,14 +33,20 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
     private FloatingActionButton fbutton;
     private ProgressDialog pDialog;
     private String jsonResponse;
     private List stazioni;
-
+    private DrawerLayout mDrawerLayout;
+    private ListView mDrawerList;
+    private String[] mPlanetTitles;
+    private ActionBarDrawerToggle drawerToggle;
+    private CharSequence mDrawerTitle;
+    private CharSequence mTitle;
+    private Toolbar toolbar;
 
 
     String url = "http://api.citybik.es/to-bike.json";
@@ -55,6 +68,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         stazioni= new ArrayList<MarkerOptions>();
 
 
+        //navigationDrawer
+        mPlanetTitles = new String[]{"preferiti", "impostazioni",};
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+
+        //get toolbar from xml and set it as actionbar
+        toolbar=(Toolbar)findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_menu_black_48dp);
+        getSupportActionBar().setHomeButtonEnabled(true);
+
+        // Set the drawer toggle as the DrawerListener
+        mDrawerLayout.setDrawerListener(drawerToggle);
+
+
+
+       //  mDrawerList.setAdapter(new ArrayAdapter<String>(this, R.layout.drawer_list_item, mPlanetTitles));
+        // Set the list's click listener
+        // mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
+
+        mDrawerTitle=mTitle="titolo";
+        drawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,toolbar
+                , R.string.navigation_drawer_open, R.string.navigation_drawer_closed) {
+
+           // Called when a drawer has settled in a completely closed state.
+            public void onDrawerClosed(View view) {
+                super.onDrawerClosed(view);
+                getSupportActionBar().setTitle(mTitle);
+                invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+            }
+
+            //Called when a drawer has settled in a completely open state.
+            public void onDrawerOpened(View drawerView) {
+                super.onDrawerOpened(drawerView);
+                invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+            }
+        };
 
 
 
@@ -76,9 +126,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Add cluster items (markers) to the cluster manager.
        // addItems();
+
+    }
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        // Sync the toggle state after onRestoreInstanceState has occurred.
     }
 
     private void addItems() {
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        drawerToggle.onConfigurationChanged(newConfig);
+    }
 
         // Set some lat/lng coordinates to start with.
         double lat = 51.5145160;
@@ -91,7 +152,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             lng = lng + offset;
             MyItem offsetItem = new MyItem(lat, lng);
             mClusterManager.addItem(offsetItem);
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Pass the event to ActionBarDrawerToggle, if it returns
+        // true, then it has handled the app icon touch event
+        if (drawerToggle.onOptionsItemSelected(item)) {
+            return true;
         }
+
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                mDrawerLayout.openDrawer(GravityCompat.START);
+                return true;
+        }
+
+        // Handle your other action bar items...
+        return super.onOptionsItemSelected(item);
     }
 
 
@@ -121,10 +197,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
         setUpClusterer();
 
-        doReq();
+       doReq();
 
         LatLng torino = new LatLng(45.01, 7.65);
         mMap.moveCamera(CameraUpdateFactory.newLatLng(torino));
+        mMap.addMarker(new MarkerOptions().position(torino));
 
     }
 
@@ -132,8 +209,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         JsonArrayRequest req = new JsonArrayRequest(url,
                 new Response.Listener<JSONArray>() {
                     @Override
-                    public void onResponse(JSONArray response) {
-                        Log.d("ciao",response.toString());
+                    public void onResponse(JSONArray response) { Log.d("ciao",response.toString());
                         try {
                             // Parsing json array response
                             // loop through each json object
@@ -190,11 +266,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        req.setRetryPolicy(new DefaultRetryPolicy(20000, 1, 1.0f));
+        req.setRetryPolicy(new DefaultRetryPolicy(20000,1,1.0f));
         MySingleton.getInstance(this).addToRequestQueue(req);
     }
 
     public GoogleMap getMap() {
         return mMap;
+
+
     }
 }

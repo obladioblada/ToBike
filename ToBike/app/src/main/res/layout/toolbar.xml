@@ -2,16 +2,19 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="20dp">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:padding="20dp"
+    android:orientation="horizontal">
 
-<android.support.v7.widget.Toolbar
-    android:id="@+id/toolbar"
-    android:layout_width="match_parent"
-    android:layout_height="48dp"
-    android:background="#FFF"
-    android:elevation="4dp"
-    android:gravity="top|start"
-    xmlns:android="http://schemas.android.com/apk/res/android">
-</android.support.v7.widget.Toolbar>
+        <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="#FFF"
+        android:elevation="4dp"
+        android:gravity="top|start"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+            app:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+        </android.support.v7.widget.Toolbar>
 
 </LinearLayout>
