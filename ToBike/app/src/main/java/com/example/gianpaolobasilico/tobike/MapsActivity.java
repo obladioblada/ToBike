@@ -1,5 +1,9 @@
 package com.example.gianpaolobasilico.tobike;
 
+
+//do NOT delete this two lines, is where I take the sh*t out of the markers! :D
+// https://developers.google.com/maps/documentation/android-api/utility/marker-clustering?hl=en
+
 import android.app.ProgressDialog;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -25,6 +29,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterManager;
 
 import org.json.JSONArray;
@@ -125,10 +130,24 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         getMap().setOnCameraChangeListener(mClusterManager);
         getMap().setOnMarkerClickListener(mClusterManager);
 
+        mClusterManager.setOnClusterClickListener(new ClusterManager.OnClusterClickListener<MyItem>() {
+            @Override
+            public boolean onClusterClick(Cluster<MyItem> cluster) {
+                float z=getMap().getCameraPosition().zoom+1;
+                getMap().animateCamera(CameraUpdateFactory.newLatLngZoom(cluster.getPosition(), z),500,null);
+                return true;
+            }
+
+
+        });
+
         // Add cluster items (markers) to the cluster manager.
        // addItems();
 
     }
+
+
+
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
@@ -188,9 +207,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
        doReq();
 
-        LatLng torino = new LatLng(45.01, 7.65);
+        LatLng torino = new LatLng(45.0585363,7.6882472);
+
         mMap.moveCamera(CameraUpdateFactory.newLatLng(torino));
-        mMap.addMarker(new MarkerOptions().position(torino));
+        mMap.moveCamera(CameraUpdateFactory.zoomTo(12));
+                //mMap.addMarker(new MarkerOptions().position(torino));
 
     }
 
@@ -231,7 +252,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 MyItem item = new MyItem(lat, lng);
                                 mClusterManager.addItem(item);
                                // getMap().addMarker(mo);
-                                Log.d("ciao", mo.getPosition().toString());
 
 
                             }

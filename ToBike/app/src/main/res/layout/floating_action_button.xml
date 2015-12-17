@@ -14,7 +14,9 @@
         android:layout_alignParentEnd="true"
         android:layout_marginBottom="@dimen/floating_button_margin"
         android:layout_marginRight="@dimen/floating_button_margin"
-        android:src="@drawable/ic_navigation_black_48dp"/>
+        android:src="@drawable/ic_navigation_black_48dp"
+        app:backgroundTint="@color/colorButtons"
+        />
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/position"
@@ -26,7 +28,9 @@
         android:layout_marginBottom="@dimen/floating_button_margin"
         android:layout_above="@id/navigation"
         android:layout_marginRight="@dimen/floating_button_margin"
-        android:src="@drawable/ic_gps_fixed_black_48dp"/>
+        android:src="@drawable/ic_gps_fixed_black_48dp"
+        app:backgroundTint="@color/colorButtons"
+        />
 
 
 
