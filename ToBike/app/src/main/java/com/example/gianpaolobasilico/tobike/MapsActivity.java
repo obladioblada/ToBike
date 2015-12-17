@@ -25,6 +25,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.maps.android.clustering.ClusterManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -134,24 +135,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Sync the toggle state after onRestoreInstanceState has occurred.
     }
 
-    private void addItems() {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         drawerToggle.onConfigurationChanged(newConfig);
     }
 
-        // Set some lat/lng coordinates to start with.
-        double lat = 51.5145160;
-        double lng = -0.1270060;
-
-        // Add ten cluster items in close proximity, for purposes of this example.
-        for (int i = 0; i < 10; i++) {
-            double offset = i / 60d;
-            lat = lat + offset;
-            lng = lng + offset;
-            MyItem offsetItem = new MyItem(lat, lng);
-            mClusterManager.addItem(offsetItem);
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Pass the event to ActionBarDrawerToggle, if it returns
