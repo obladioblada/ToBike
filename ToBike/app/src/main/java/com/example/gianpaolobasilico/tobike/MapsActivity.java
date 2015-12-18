@@ -7,13 +7,14 @@ package com.example.gianpaolobasilico.tobike;
 import android.app.ProgressDialog;
 import android.content.res.Configuration;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
@@ -42,16 +43,13 @@ import java.util.List;
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
-    private FloatingActionButton fbutton;
     private ProgressDialog pDialog;
     private String jsonResponse;
     private List stazioni;
     private DrawerLayout mDrawerLayout;
     private ListView mDrawerList;
-    private String[] mPlanetTitles;
     private ActionBarDrawerToggle drawerToggle;
-    private CharSequence mDrawerTitle;
-    private CharSequence mTitle;
+
     private Toolbar toolbar;
 
 
@@ -75,7 +73,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
         //navigationDrawer
-        mPlanetTitles = new String[]{"preferiti", "impostazioni",};
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
 
         //get toolbar from xml and set it as actionbar
@@ -84,6 +81,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_menu_black_48dp);
         getSupportActionBar().setHomeButtonEnabled(true);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
 
         // Set the drawer toggle as the DrawerListener
         mDrawerLayout.setDrawerListener(drawerToggle);
@@ -94,14 +92,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Set the list's click listener
         // mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
 
-        mDrawerTitle=mTitle="titolo";
         drawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,toolbar
                 , R.string.navigation_drawer_open, R.string.navigation_drawer_closed) {
 
            // Called when a drawer has settled in a completely closed state.
             public void onDrawerClosed(View view) {
                 super.onDrawerClosed(view);
-                getSupportActionBar().setTitle(mTitle);
                 invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
             }
 
@@ -116,6 +112,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return true;}
 
     private void setUpClusterer() {
 

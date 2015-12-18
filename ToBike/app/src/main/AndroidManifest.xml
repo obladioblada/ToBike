@@ -11,10 +11,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:allowBackup="true"
-        android:icon="@drawable/ic_menu_black_48dp"
+        android:icon="@drawable/bike"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.NoActionBar">
+        android:theme="@style/ToBikeTheme">
 
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
