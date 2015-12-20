@@ -6,7 +6,10 @@ package com.example.gianpaolobasilico.tobike;
 
 import android.app.ProgressDialog;
 import android.content.res.Configuration;
+import android.graphics.Color;
+import android.location.Location;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -24,10 +27,15 @@ import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.clustering.Cluster;
@@ -40,7 +48,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback,GoogleApiClient.ConnectionCallbacks,GoogleApiClient.OnConnectionFailedListener {
 
     private GoogleMap mMap;
     private ProgressDialog pDialog;
@@ -49,8 +57,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private DrawerLayout mDrawerLayout;
     private ListView mDrawerList;
     private ActionBarDrawerToggle drawerToggle;
-
     private Toolbar toolbar;
+    // Create an instance of GoogleAPIClient.
+    private GoogleApiClient mGoogleApiClient;
+    private Location mLastLocation;
+    private Double myLatitude;
+    private Double myLongitude;
+    private FloatingActionButton myLocation;
+    private FloatingActionButton TakeMeTo;
+    private Circle myLocationCircle;
+    private CircleOptions myLocationCircleOptions;
 
 
     String url = "http://api.citybik.es/to-bike.json";
@@ -70,7 +86,35 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         pDialog.setMessage("Please wait...");
         pDialog.setCancelable(false);
         stazioni= new ArrayList<MarkerOptions>();
+        myLocationCircleOptions=new CircleOptions();
+        myLocationCircleOptions.radius(10);
+        myLocationCircleOptions.fillColor(Color.YELLOW);
+        myLocationCircleOptions.strokeColor(Color.BLUE);
+        myLocationCircleOptions.strokeWidth(2);
 
+        //set floating action button;
+        myLocation=(FloatingActionButton)findViewById(R.id.position);
+        myLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+                if (mLastLocation != null) {
+                    myLatitude=mLastLocation.getLatitude();
+                    myLongitude=mLastLocation.getLongitude();
+                    myLocationCircleOptions.center(new LatLng(myLatitude,myLongitude));
+                    myLocationCircleOptions.radius(10);
+                    myLocationCircleOptions.fillColor(Color.YELLOW);
+                    myLocationCircleOptions.strokeColor(Color.BLUE);
+                    myLocationCircleOptions.strokeWidth(2);
+                    myLocationCircle= mMap.addCircle(myLocationCircleOptions);
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(myLatitude, myLongitude),16));
+                }
+
+            }
+
+        });
+
+        TakeMeTo=(FloatingActionButton)findViewById(R.id.navigation);
 
         //navigationDrawer
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -79,10 +123,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         toolbar=(Toolbar)findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_menu_black_48dp);
+        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_menu_black_24dp);
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
-
         // Set the drawer toggle as the DrawerListener
         mDrawerLayout.setDrawerListener(drawerToggle);
 
@@ -109,8 +152,30 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         };
 
 
+        if (mGoogleApiClient == null) {
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(LocationServices.API)
+                    .build();
+
+        }
+
+
+
 
     }
+
+    protected void onStart() {
+        mGoogleApiClient.connect();
+        super.onStart();
+    }
+
+    protected void onStop() {
+        mGoogleApiClient.disconnect();
+        super.onStop();
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -134,8 +199,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mClusterManager.setOnClusterClickListener(new ClusterManager.OnClusterClickListener<MyItem>() {
             @Override
             public boolean onClusterClick(Cluster<MyItem> cluster) {
-                float z=getMap().getCameraPosition().zoom+1;
-                getMap().animateCamera(CameraUpdateFactory.newLatLngZoom(cluster.getPosition(), z),500,null);
+                float z = getMap().getCameraPosition().zoom + 1;
+                getMap().animateCamera(CameraUpdateFactory.newLatLngZoom(cluster.getPosition(), z), 500, null);
                 return true;
             }
 
@@ -205,11 +270,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         setUpClusterer();
-
-       doReq();
-
+        doReq();
         LatLng torino = new LatLng(45.0585363,7.6882472);
-
         mMap.moveCamera(CameraUpdateFactory.newLatLng(torino));
         mMap.moveCamera(CameraUpdateFactory.zoomTo(12));
                 //mMap.addMarker(new MarkerOptions().position(torino));
@@ -281,8 +343,37 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public GoogleMap getMap() {
-        return mMap;
+        return mMap;}
 
 
+    @Override
+    public void onConnected(Bundle bundle) {
+        //as soon as map is connected
+        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
+                mGoogleApiClient);
+        if (mLastLocation != null) {
+            myLatitude=mLastLocation.getLatitude();
+            myLongitude=mLastLocation.getLongitude();}
+        myLocationCircleOptions.center(new LatLng(myLatitude, myLongitude));
+
+        if(myLocationCircle!=null)
+             myLocationCircle.remove();
+        myLocationCircle= mMap.addCircle(myLocationCircleOptions);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(myLatitude, myLongitude),16));
+
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+
+    }
+
+    public LatLng getMyPoition(){
+        return  null;
     }
 }
