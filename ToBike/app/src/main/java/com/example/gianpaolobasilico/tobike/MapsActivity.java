@@ -21,6 +21,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.DefaultRetryPolicy;
@@ -71,7 +72,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     String url = "http://api.citybik.es/to-bike.json";
     // Declare a variable for the cluster manager.
-    private ClusterManager<MyItem> mClusterManager;
+    private ClusterManager<mMarkerPostazione> mClusterManager;
+    private MyClusterRenderer myrend;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -184,32 +187,28 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         return true;}
 
     private void setUpClusterer() {
-
-        // Position the map.
-     //   getMap().moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(51.503186, -0.126446), 10));
-
-        // Initialize the manager with the context and the map.
         // (Activity extends context, so we can pass 'this' in the constructor.)
-        mClusterManager = new ClusterManager<MyItem>(this, getMap());
-        // Point the map's listeners at the listeners implemented by the cluster
-        // manager.
+        mClusterManager = new ClusterManager<mMarkerPostazione>(this, getMap());
+        myrend=new MyClusterRenderer(this, getMap(),mClusterManager);
         getMap().setOnCameraChangeListener(mClusterManager);
         getMap().setOnMarkerClickListener(mClusterManager);
-
-        mClusterManager.setOnClusterClickListener(new ClusterManager.OnClusterClickListener<MyItem>() {
+        mClusterManager.setRenderer(myrend);
+        mClusterManager.setOnClusterClickListener(new ClusterManager.OnClusterClickListener<mMarkerPostazione>() {
             @Override
-            public boolean onClusterClick(Cluster<MyItem> cluster) {
-                float z = getMap().getCameraPosition().zoom + 1;
-                getMap().animateCamera(CameraUpdateFactory.newLatLngZoom(cluster.getPosition(), z), 500, null);
+            public boolean onClusterClick(Cluster<mMarkerPostazione> cluster) {
+                getMap().animateCamera(CameraUpdateFactory.newLatLngZoom(cluster.getPosition(), getMap().getCameraPosition().zoom + 1));
                 return true;
             }
-
-
         });
-
-        // Add cluster items (markers) to the cluster manager.
-       // addItems();
-
+        mClusterManager.setOnClusterItemClickListener(new ClusterManager.OnClusterItemClickListener<mMarkerPostazione>() {
+            @Override
+            public boolean onClusterItemClick(mMarkerPostazione mMarkerPostazione) {
+                TextView bici= (TextView) findViewById(R.id.nrBici);
+                bici.setText("a "+mMarkerPostazione.getmTitle()+": "+String.valueOf(mMarkerPostazione.getmBikes())+" bici");
+                getMap().animateCamera(CameraUpdateFactory.newLatLng(mMarkerPostazione.getPosition()));
+                return true;
+            }
+        });
     }
 
 
@@ -270,11 +269,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         setUpClusterer();
+        mMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
+
         doReq();
         LatLng torino = new LatLng(45.0585363,7.6882472);
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(torino));
-        mMap.moveCamera(CameraUpdateFactory.zoomTo(12));
-                //mMap.addMarker(new MarkerOptions().position(torino));
+        mMap.animateCamera(CameraUpdateFactory.newLatLng(torino));
 
     }
 
@@ -298,7 +297,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 lat=lat/1e6;
                                 double lng = person.getDouble("lng");
                                 lng=lng/1e6;
-                                String bikes = person.getString("bikes");
+                                int bikes = person.getInt("bikes");
                                 String free = person.getString("free");
                                 String timestamp=person.getString("timestamp");
 
@@ -310,14 +309,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 jsonResponse += "free: " + free + "\n\n";
                                 jsonResponse += "timestamp: " + timestamp + "\n\n";
 
-                                MarkerOptions mo = new MarkerOptions().position(new LatLng(lat,lng));
-                                mo.title(name);
-                                MyItem item = new MyItem(lat, lng);
-                                mClusterManager.addItem(item);
-                               // getMap().addMarker(mo);
-
-
+                                mMarkerPostazione am= new mMarkerPostazione(lat,lng,name,bikes);
+                                mClusterManager.addItem(am);
                             }
+                            mMap.animateCamera(CameraUpdateFactory.zoomTo(12));
 
 
                         } catch (JSONException e) {
@@ -373,7 +368,4 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    public LatLng getMyPoition(){
-        return  null;
-    }
 }

@@ -12,6 +12,7 @@
         android:layout_height="wrap_content"
         android:text="Header"
         android:textColor="@android:color/white"
+        android:id="@+id/nrBici"
 />
 
 
