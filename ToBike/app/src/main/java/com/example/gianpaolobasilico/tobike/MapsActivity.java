@@ -20,6 +20,8 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -68,6 +70,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FloatingActionButton TakeMeTo;
     private Circle myLocationCircle;
     private CircleOptions myLocationCircleOptions;
+    private String[] navigation_items;
 
 
     String url = "http://api.citybik.es/to-bike.json";
@@ -75,15 +78,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ClusterManager<mMarkerPostazione> mClusterManager;
     private MyClusterRenderer myrend;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         pDialog = new ProgressDialog(this);
         pDialog.setMessage("Please wait...");
@@ -120,6 +121,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         TakeMeTo=(FloatingActionButton)findViewById(R.id.navigation);
 
         //navigationDrawer
+        //navigationDrawerm
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
 
         //get toolbar from xml and set it as actionbar
@@ -131,15 +133,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         getSupportActionBar().setDisplayShowTitleEnabled(false);
         // Set the drawer toggle as the DrawerListener
         mDrawerLayout.setDrawerListener(drawerToggle);
-
-
-
-       //  mDrawerList.setAdapter(new ArrayAdapter<String>(this, R.layout.drawer_list_item, mPlanetTitles));
+        navigation_items= new String[]{"Preferiti","Impostazioni","cazzabibbolo","chi siamo", "obladiObada"};
+        mDrawerList=(ListView)findViewById(R.id.drawer_items);
+        mDrawerList.setAdapter(new ArrayAdapter<String>(this, R.layout.drawer_list_item,R.id.textViewList,navigation_items));
         // Set the list's click listener
-        // mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
+        mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
 
-        drawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,toolbar
-                , R.string.navigation_drawer_open, R.string.navigation_drawer_closed) {
+        drawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,toolbar,R.string.navigation_drawer_open, R.string.navigation_drawer_closed) {
 
            // Called when a drawer has settled in a completely closed state.
             public void onDrawerClosed(View view) {
@@ -161,10 +161,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     .addOnConnectionFailedListener(this)
                     .addApi(LocationServices.API)
                     .build();
-
+            //as soon as map is connected
+            mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
+                    mGoogleApiClient);
         }
-
-
 
 
     }
@@ -203,8 +203,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mClusterManager.setOnClusterItemClickListener(new ClusterManager.OnClusterItemClickListener<mMarkerPostazione>() {
             @Override
             public boolean onClusterItemClick(mMarkerPostazione mMarkerPostazione) {
-                TextView bici= (TextView) findViewById(R.id.nrBici);
-                bici.setText("a "+mMarkerPostazione.getmTitle()+": "+String.valueOf(mMarkerPostazione.getmBikes())+" bici");
+                TextView bici = (TextView) findViewById(R.id.nrBici);
+                bici.setText("a " + mMarkerPostazione.getmTitle() + ": " + String.valueOf(mMarkerPostazione.getmBikes()) + " bici");
                 getMap().animateCamera(CameraUpdateFactory.newLatLng(mMarkerPostazione.getPosition()));
                 return true;
             }
@@ -368,4 +368,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+
+
+    private class DrawerItemClickListener implements android.widget.AdapterView.OnItemClickListener {
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+        }
+    }
 }
