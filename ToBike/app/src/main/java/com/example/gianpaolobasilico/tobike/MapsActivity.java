@@ -6,6 +6,7 @@ package com.example.gianpaolobasilico.tobike;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.location.Location;
@@ -151,9 +152,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         getSupportActionBar().setDisplayShowTitleEnabled(false);
         mDrawerLayout.setDrawerListener(drawerToggle);
 
-        navigation_items= new String[]{getString(R.string.login),getString(R.string.setting),getString(R.string.preferred),
+        navigation_items= new String[]{getString(R.string.login),getString(R.string.preferred),getString(R.string.setting),
                 getString(R.string.whoweare)};
-        icon_list = new int[]{R.drawable.login,R.drawable.ic_settings_black_24dp,R.drawable.ic_add_location_black_24dp,
+        icon_list = new int[]{R.drawable.login,R.drawable.ic_add_location_black_24dp,R.drawable.ic_settings_black_24dp,
                 R.drawable.ic_person_black_24dp};
 
         MAdapterList mAdapter=new MAdapterList(this, navigation_items,icon_list);
@@ -466,7 +467,25 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private class DrawerItemClickListener implements android.widget.AdapterView.OnItemClickListener {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            selectItemNavigation(position);
 
+        }
+    }
+
+    private void selectItemNavigation(int position) {
+        switch (position){
+            //login
+            case 0:Intent login=new Intent(this,LoginActivity.class);
+                   startActivity(login);break;
+            //preferiti
+            case 1:break;
+            //impostazioni
+            case 2:
+                Intent setting=new Intent(this,SettingActivity.class);
+                startActivity(setting);
+                break;
+            //chi siamo
+            case 3:break;
         }
     }
 
