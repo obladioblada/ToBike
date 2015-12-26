@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.gianpaolobasilico.tobike" >
+    package="com.example.gianpaolobasilico.tobike">
 
     <!--
          The ACCESS_COARSE/FINE_LOCATION permissions are not required to use
@@ -20,7 +20,7 @@
         android:icon="@drawable/bike"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/ToBikeTheme" >
+        android:theme="@style/ToBikeTheme">
 
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
@@ -35,16 +35,21 @@
             android:value="@string/google_maps_key" />
 
         <activity
-            android:name=".MapsActivity"
-            android:label="@string/title_activity_maps" >
+            android:name=".SplashActivity"
+            android:label="@string/title_activity_maps">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".LoginActivity" />
+        <activity android:name=".SettingActivity"></activity>
+        <activity android:name=".MapsActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-        <activity android:name=".LoginActivity" />
-        <activity android:name=".SettingActivity" >
         </activity>
     </application>
 

@@ -3,16 +3,18 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context="com.example.gianpaolobasilico.tobike.LoginActivity">
 
     <android.support.v7.widget.Toolbar
         android:id="@+id/login_toolbar"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="?attr/actionBarSize"
         android:background="@color/colorPrimaryDark"
         android:elevation="4dp"
-        android:gravity="top|start"
+        app:theme="@style/ToBikeTheme"
         xmlns:android="http://schemas.android.com/apk/res/android"
+
         >
          </android.support.v7.widget.Toolbar>
 
