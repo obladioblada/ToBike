@@ -8,6 +8,8 @@
         android:gravity="top|start"
         android:layout_margin="@dimen/toolbar_margin"
         xmlns:android="http://schemas.android.com/apk/res/android"
+        android:focusable="true"
+         android:focusableInTouchMode="true"
 
          >
           <AutoCompleteTextView
@@ -15,6 +17,10 @@
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:hint="@string/search_hint"
-              android:background="@android:color/transparent"
+                android:background="@android:color/transparent"
+                android:inputType="textAutoCorrect"
+                android:imeOptions="actionSearch"
+
+
               />
         </android.support.v7.widget.Toolbar>

@@ -4,6 +4,7 @@
     <color name="colorPrimaryDark">#546E7A</color>
     <color name="colorButtons">#FFEB3B</color>
     <color name="colorNavigationDrawer">#546E7A</color>
+    <color name="white">#FFFFFF</color>
 
 
 </resources>

@@ -17,6 +17,8 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.DisplayMetrics;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -24,6 +26,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -79,7 +83,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private String[] navigation_items;
     private int[] icon_list;
     private LocationRequest mLocationRequest;
-
+    private List<String> suggestions;
+    private AutoCompleteTextView autoCompleteTextView;
+    private ArrayAdapter<String> acAdapter;
+    private String station_to_reach;
 
     String url = "http://api.citybik.es/to-bike.json";
     // Declare a variable for the cluster manager.
@@ -175,6 +182,36 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
             }
         };
+
+        //handling autocomplete
+        DisplayMetrics displaymetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+        autoCompleteTextView=(AutoCompleteTextView)findViewById(R.id.autocomplete);
+        suggestions=new ArrayList<String>();
+        acAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,suggestions);
+        autoCompleteTextView.setAdapter(acAdapter);
+        autoCompleteTextView.setDropDownBackgroundResource(R.color.white);
+        autoCompleteTextView.setDropDownVerticalOffset(20);
+        autoCompleteTextView.setDropDownWidth(displaymetrics.widthPixels);
+        autoCompleteTextView.setThreshold(1);
+        autoCompleteTextView.performCompletion();
+        //handling click on suggestion
+        autoCompleteTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                station_to_reach = acAdapter.getItem(position);
+
+            }
+        });
+
+        //handling click on search button keyboard
+        autoCompleteTextView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                station_to_reach=autoCompleteTextView.getText().toString();
+                return false;
+            }
+        });
     }
 
     protected void onStart() {
@@ -316,6 +353,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                                 String id = person.getString("id");
                                 String name = person.getString("name");
+                                suggestions.add(name);
                                 double lat = person.getDouble("lat");
                                 lat=lat/1e6;
                                 double lng = person.getDouble("lng");
