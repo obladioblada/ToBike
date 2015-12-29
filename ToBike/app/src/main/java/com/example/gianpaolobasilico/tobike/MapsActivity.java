@@ -88,6 +88,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private AutoCompleteTextView autoCompleteTextView;
     private ArrayAdapter<String> acAdapter;
     private String station_to_reach;
+    private Boolean is_ready;
 
     String url = "http://api.citybik.es/to-bike.json";
     // Declare a variable for the cluster manager.
@@ -98,9 +99,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        is_ready=false;
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
@@ -113,8 +114,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         myLocationCircleOptions.fillColor(Color.YELLOW);
         myLocationCircleOptions.strokeColor(Color.BLUE);
         myLocationCircleOptions.strokeWidth(2);
-
-
         if (mGoogleApiClient == null) {
             mGoogleApiClient = new GoogleApiClient.Builder(this)
                     .addConnectionCallbacks(this)
@@ -240,10 +239,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-
-
-
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
@@ -274,8 +269,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
-
-
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
@@ -344,6 +337,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
         doReq();
         autoCompleteTextView.setAdapter(acAdapter);
+        is_ready=true;
     }
 
     public void doReq(){
@@ -382,8 +376,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 mMarkerPostazione am= new mMarkerPostazione(lat,lng,name,bikes);
                                 mClusterManager.addItem(am);
                             }
-                            mMap.animateCamera(CameraUpdateFactory.zoomTo(12));
-
 
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -409,7 +401,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public GoogleMap getMap() {
         return mMap;}
 
-
     @Override
     public void onConnected(Bundle bundle) {
         //as soon as map is connected
@@ -431,8 +422,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     protected void stopLocationUpdates() {
-        LocationServices.FusedLocationApi.removeLocationUpdates(
-                mGoogleApiClient, this);
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
     }
 
     public void onLocationChanged(Location location) {
