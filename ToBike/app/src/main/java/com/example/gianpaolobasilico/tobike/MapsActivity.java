@@ -11,6 +11,7 @@ import android.content.res.Configuration;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
+import android.speech.RecognizerIntent;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -92,6 +93,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     // Declare a variable for the cluster manager.
     private ClusterManager<mMarkerPostazione> mClusterManager;
     private MyClusterRenderer myrend;
+    //code to start speech
+    private static final int REQUEST_CODE = 1234;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -189,7 +192,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         autoCompleteTextView=(AutoCompleteTextView)findViewById(R.id.autocomplete);
         suggestions=new ArrayList<String>();
         acAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,suggestions);
-        autoCompleteTextView.setAdapter(acAdapter);
         autoCompleteTextView.setDropDownBackgroundResource(R.color.white);
         autoCompleteTextView.setDropDownVerticalOffset(20);
         autoCompleteTextView.setDropDownWidth(displaymetrics.widthPixels);
@@ -200,7 +202,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 station_to_reach = acAdapter.getItem(position);
-
             }
         });
 
@@ -296,28 +297,35 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (drawerToggle.onOptionsItemSelected(item)) {
             return true;
         }
-
         switch (item.getItemId()) {
             case android.R.id.home:
                 mDrawerLayout.openDrawer(GravityCompat.START);
                 return true;
+            case  R.id.voicesearch:
+                startVoiceRecognitionActivity();
         }
 
         // Handle your other action bar items...
         return super.onOptionsItemSelected(item);
     }
 
-
-    private void showpDialog() {
-        if (!pDialog.isShowing())
-            pDialog.show();
+    private void startVoiceRecognitionActivity() {
+        Intent intent=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "say my name");
+        startActivityForResult(intent, REQUEST_CODE);
     }
 
-    private void hidepDialog() {
-        if (pDialog.isShowing())
-            pDialog.dismiss();
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE && resultCode == RESULT_OK){
+            ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+            String station_said=new String();
+            station_said=matches.get(0);
+            autoCompleteTextView.setText(station_said);
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
-
 
 
     /**
@@ -335,6 +343,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         setUpClusterer();
         mMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
         doReq();
+        autoCompleteTextView.setAdapter(acAdapter);
     }
 
     public void doReq(){
@@ -383,14 +392,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     Toast.LENGTH_LONG).show();
                         }
 
-                        hidepDialog();
+
                     }
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 Toast.makeText(getApplicationContext(),
                         error.getMessage(), Toast.LENGTH_SHORT).show();
-                hidepDialog();
             }
         });
 

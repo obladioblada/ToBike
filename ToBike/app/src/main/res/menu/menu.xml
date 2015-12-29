@@ -8,7 +8,7 @@
     <!-- "Mark Favorite", should appear as action button if possible -->
 
     <item
-        android:id="@+id/search"
+        android:id="@+id/voicesearch"
         android:icon="@drawable/ic_mic_black_18dp"
         android:title="search"
         app:showAsAction="always"
