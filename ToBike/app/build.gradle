@@ -27,4 +27,8 @@ dependencies {
     compile 'com.google.android.gms:play-services:8.3.0'
     compile 'com.android.support:design:23.1.1'
     compile files('libs/volley.jar')
+    repositories {
+        mavenCentral()
+    }
+    compile 'com.sothree.slidinguppanel:library:3.2.1'
 }

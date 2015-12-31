@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:weightSum="1"
+    android:background="@color/white">
+
+    <LinearLayout  xmlns:android="http://schemas.android.com/apk/res/android"
+                  android:orientation="horizontal"
+                  android:layout_width="match_parent"
+                  android:layout_height="0dp"
+                  android:layout_weight="0.25"
+                  style="@style/ToBikeTheme"
+                  android:background="@color/colorPrimaryDark"
+                  android:gravity="center|start|left|top"
+                  android:weightSum="1"
+                  android:elevation="4dp">
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:text="fermata"
+        android:id="@+id/fermata"
+        android:gravity="top|left"
+        android:layout_weight="0.7"
+        android:paddingLeft="20dp"
+        android:paddingTop="20dp"
+        android:textColor="@color/white"
+        android:singleLine="true"
+        android:textStyle="bold"
+        android:theme="@style/ToBikeTheme"
+        android:textSize="24sp" />
+
+        <TextView
+         android:layout_width="0dp"
+         android:layout_height="match_parent"
+         android:text="num"
+         android:id="@+id/numbici"
+         android:gravity="top|right"
+         android:layout_weight="0.3"
+         android:paddingEnd="50dp"
+         android:paddingRight="50dp"
+         android:paddingTop="20dp"
+         android:textColor="@color/white"
+         android:singleLine="true"
+         android:theme="@style/ToBikeTheme"
+         android:textSize="24sp"
+         android:textStyle="bold"
+        android:elevation="9dp"
+        android:enabled="false"
+        android:ellipsize="start" />
+</LinearLayout>
+
+
+
+</LinearLayout>

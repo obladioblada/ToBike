@@ -19,6 +19,7 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -26,6 +27,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -54,6 +56,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterManager;
+import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -89,7 +92,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ArrayAdapter<String> acAdapter;
     private String station_to_reach;
     private Boolean is_ready;
-
+    private SlidingUpPanelLayout slidingUpPanelLayout;
+    private View mapView;
     String url = "http://api.citybik.es/to-bike.json";
     // Declare a variable for the cluster manager.
     private ClusterManager<mMarkerPostazione> mClusterManager;
@@ -100,6 +104,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.i("lifecycle","oncreate");
         setContentView(R.layout.activity_maps);
         is_ready=false;
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -183,6 +188,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 super.onDrawerOpened(drawerView);
                 invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
             }
+
+
         };
 
         //handling autocomplete
@@ -208,20 +215,31 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         autoCompleteTextView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                station_to_reach=autoCompleteTextView.getText().toString();
-                return false;
-            }
+                if(actionId==EditorInfo.IME_ACTION_SEARCH)
+                {   //implementare che al click del tasto di ricerca la camera si deve spostare sulla postazione
+                    // e deve spuntare lo sliding in basso col numero di fermate
+                    station_to_reach=autoCompleteTextView.getText().toString();
+                    return true;}
+
+                return false;}
+
         });
+
+        //handlign slidingUp panel
+        slidingUpPanelLayout=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
     }
 
     protected void onStart() {
         super.onStart();
         mGoogleApiClient.connect();
+        Log.i("lifecycle", "onstart");
     }
 
     protected void onStop() {
         super.onStop();
         mGoogleApiClient.disconnect();
+        slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+        Log.i("lifecycle", "onstop");
     }
 
     @Override
@@ -229,6 +247,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onPause();
         if (mGoogleApiClient.isConnected())
             stopLocationUpdates();
+        Log.i("lifecycle","onpause");
     }
 
     @Override
@@ -236,6 +255,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onResume();
         if (mGoogleApiClient.isConnected()) {
             startLocationUpdates();
+            Log.i("lifecycle", "onresume");
         }
     }
 
@@ -262,8 +282,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mClusterManager.setOnClusterItemClickListener(new ClusterManager.OnClusterItemClickListener<mMarkerPostazione>() {
             @Override
             public boolean onClusterItemClick(mMarkerPostazione mMarkerPostazione) {
-                TextView bici = (TextView) findViewById(R.id.nrBici);
-                bici.setText("a " + mMarkerPostazione.getmTitle() + ": " + String.valueOf(mMarkerPostazione.getmBikes()) + " bici");
+                TextView fermata = (TextView)findViewById(R.id.fermata);
+                TextView numBici= (TextView)findViewById(R.id.numbici);
+                slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                fermata.setText(mMarkerPostazione.getmTitle());
+                numBici.setText(String.valueOf(mMarkerPostazione.getmBikes()));
                 getMap().animateCamera(CameraUpdateFactory.newLatLng(mMarkerPostazione.getPosition()));
                 return true;
             }
@@ -338,7 +361,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         doReq();
         autoCompleteTextView.setAdapter(acAdapter);
         is_ready=true;
-    }
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                Log.i("ciao","ciao");
+                slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);}
+           });
+     }
 
     public void doReq(){
         JsonArrayRequest req = new JsonArrayRequest(url,
