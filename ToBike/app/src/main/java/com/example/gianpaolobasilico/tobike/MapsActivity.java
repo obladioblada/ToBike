@@ -28,6 +28,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -53,6 +54,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterManager;
@@ -75,6 +77,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ListView mDrawerList;
     private ActionBarDrawerToggle drawerToggle;
     private Toolbar toolbar;
+    private TextView fermata;
+    private TextView numBici;
     // Create an instance of GoogleAPIClient.
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
@@ -129,6 +133,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         }
 
+        //handlign slidingUp panel
+        slidingUpPanelLayout=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
+        fermata = (TextView)findViewById(R.id.fermata);
+        numBici= (TextView)findViewById(R.id.numbici);
 
         //set floating action button;
         myLocation=(FloatingActionButton)findViewById(R.id.position);
@@ -218,15 +226,25 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if(actionId==EditorInfo.IME_ACTION_SEARCH)
                 {   //implementare che al click del tasto di ricerca la camera si deve spostare sulla postazione
                     // e deve spuntare lo sliding in basso col numero di fermate
+                    autoCompleteTextView.clearFocus();
                     station_to_reach=autoCompleteTextView.getText().toString();
-                    return true;}
+                    InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                    for (Marker m:mClusterManager.getMarkerCollection().getMarkers()) {
+                        if( station_to_reach.equals(m.getTitle())){
+                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(m.getPosition(), 16));
+                            fermata.setText(m.getTitle());
+                            numBici.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
+                            slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                            Log.i("fermata", m.getTitle());
+                            return true;}
+                          }
 
+                }
                 return false;}
 
         });
 
-        //handlign slidingUp panel
-        slidingUpPanelLayout=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
     }
 
     protected void onStart() {
@@ -282,8 +300,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mClusterManager.setOnClusterItemClickListener(new ClusterManager.OnClusterItemClickListener<mMarkerPostazione>() {
             @Override
             public boolean onClusterItemClick(mMarkerPostazione mMarkerPostazione) {
-                TextView fermata = (TextView)findViewById(R.id.fermata);
-                TextView numBici= (TextView)findViewById(R.id.numbici);
                 slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                 fermata.setText(mMarkerPostazione.getmTitle());
                 numBici.setText(String.valueOf(mMarkerPostazione.getmBikes()));
@@ -339,6 +355,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             String station_said=new String();
             station_said=matches.get(0);
             autoCompleteTextView.setText(station_said);
+            for (Marker m:mClusterManager.getMarkerCollection().getMarkers()) {
+                if( station_said.equals(m.getTitle())){
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(m.getPosition(), 16));
+                    fermata.setText(m.getTitle());
+                    numBici.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
+                    slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                    Log.i("fermata", m.getTitle());
+                    }
+            }
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
@@ -528,7 +553,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
-     //handling  the navigation drawer's click
+    //handling  the navigation drawer's click
     private class DrawerItemClickListener implements android.widget.AdapterView.OnItemClickListener {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {

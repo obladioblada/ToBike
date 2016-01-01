@@ -14,14 +14,16 @@ public class mMarkerPostazione implements ClusterItem {
     private final int mBikes;
     private final String mTitle;
 
-    public String getmTitle() {
-        return mTitle;
-    }
+
 
     public mMarkerPostazione(double lat, double lng, String mTitle, int bikes) {
         this.mTitle = mTitle;
         this.mPosition = new LatLng(lat, lng);
         this.mBikes = bikes;
+    }
+
+    public String getmTitle() {
+        return mTitle;
     }
 
     @Override

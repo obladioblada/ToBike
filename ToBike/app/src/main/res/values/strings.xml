@@ -3,7 +3,7 @@
     <string name="title_activity_maps">ToBike</string>
     <string name="navigation_drawer_open">open</string>
     <string name="navigation_drawer_closed">closed</string>
-    <string name="search_hint">cerca</string>
+    <string name="search_hint">cerca stazione</string>
     <string name="setting">impostazioni</string>
     <string name="preferred">preferiti</string>
     <string name="whoweare">chi siamo</string>
