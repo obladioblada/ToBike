@@ -29,11 +29,7 @@
         android:layout_above="@id/navigation"
         android:layout_marginRight="@dimen/floating_button_margin"
         android:src="@drawable/ic_gps_fixed_black_48dp"
-        app:backgroundTint="@color/colorButtons"
+        app:backgroundTint="@color/white"
         />
-
-
-
-
 
 </RelativeLayout>

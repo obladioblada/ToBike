@@ -4,12 +4,13 @@
     <string name="navigation_drawer_open">open</string>
     <string name="navigation_drawer_closed">closed</string>
     <string name="search_hint">cerca stazione</string>
-    <string name="setting">impostazioni</string>
-    <string name="preferred">preferiti</string>
-    <string name="whoweare">chi siamo</string>
-    <string name="login">login</string>
+    <string name="setting">Impostazioni</string>
+    <string name="preferred">Preferiti</string>
+    <string name="about">About</string>
+    <string name="login">Login</string>
     <string name="title_activity_login">Sign in</string>
-
+    <string name="chi_siamo">"Questo è un progetto per l' esame di obladi oblada da parte di tre, dico tre, terroni coglioni.L' idea c'è venuta contando tutte le parolacce dette durante un periodo di 3 mesi e schematizzando tutto in base al giorno, ora e mestruazioni si/mestruazioni no.Il risultato ottenuto è che il ben 3% delle parolacce dette riguarda l' incazzatura sulle stazioni piene del tobike.L' altra percentuale è divisa tra i 2 tera di motivi per dire una parolaccia, spesso futili."
+    </string>
     <!-- Strings related to login -->
     <string name="prompt_email">Email</string>
     <string name="prompt_password">Password (optional)</string>

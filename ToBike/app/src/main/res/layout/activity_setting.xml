@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context="com.example.gianpaolobasilico.tobike.SettingActivity">
+    tools:context="com.example.gianpaolobasilico.tobike.SettingActivity"
+    app:theme="@style/SecondaryActivityTheme">
 
     <android.support.v7.widget.Toolbar
         android:id="@+id/setting_toolbar"
@@ -12,7 +13,7 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@color/colorPrimaryDark"
         android:elevation="4dp"
-        app:theme="@style/ToBikeTheme"
+        app:theme="@style/SecondaryActivityTheme"
         xmlns:android="http://schemas.android.com/apk/res/android">
     </android.support.v7.widget.Toolbar>
 </RelativeLayout>

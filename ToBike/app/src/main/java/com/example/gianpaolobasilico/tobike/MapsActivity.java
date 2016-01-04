@@ -85,7 +85,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Double myLatitude;
     private Double myLongitude;
     private FloatingActionButton myLocation;
-    private FloatingActionButton TakeMeTo;
+    private FloatingActionButton navigation;
     private Circle myLocationCircle;
     private CircleOptions myLocationCircleOptions;
     private String[] navigation_items;
@@ -104,6 +104,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MyClusterRenderer myrend;
     //code to start speech
     private static final int REQUEST_CODE = 1234;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -138,7 +140,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         fermata = (TextView)findViewById(R.id.fermata);
         numBici= (TextView)findViewById(R.id.numbici);
 
-        //set floating action button;
+        //set location floating action button;
         myLocation=(FloatingActionButton)findViewById(R.id.position);
         myLocation.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -163,7 +165,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         });
 
-        TakeMeTo=(FloatingActionButton)findViewById(R.id.navigation);
+        //handling navigation floating button
+        navigation =(FloatingActionButton)findViewById(R.id.navigation);
+        navigation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                findRoute();
+            }
+        });
+
+
+
+
+
+
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mDrawerList=(ListView)findViewById(R.id.drawer_items);
         toolbar=(Toolbar)findViewById(R.id.toolbar);
@@ -175,7 +190,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mDrawerLayout.setDrawerListener(drawerToggle);
 
         navigation_items= new String[]{getString(R.string.login),getString(R.string.preferred),getString(R.string.setting),
-                getString(R.string.whoweare)};
+                getString(R.string.about)};
         icon_list = new int[]{R.drawable.login,R.drawable.ic_add_location_black_24dp,R.drawable.ic_settings_black_24dp,
                 R.drawable.ic_person_black_24dp};
 
@@ -244,6 +259,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return false;}
 
         });
+
+    }
+
+    private void findRoute() {
 
     }
 
@@ -354,6 +373,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             String station_said=new String();
             station_said=matches.get(0);
+            station_to_reach=station_said;
             autoCompleteTextView.setText(station_said);
             for (Marker m:mClusterManager.getMarkerCollection().getMarkers()) {
                 if( station_said.equals(m.getTitle())){
@@ -574,7 +594,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 startActivity(setting);
                 break;
             //chi siamo
-            case 3:break;
+            case 3:
+                Intent about=new Intent(this,AboutActivity.class);
+                startActivity(about);break;
         }
     }
 
