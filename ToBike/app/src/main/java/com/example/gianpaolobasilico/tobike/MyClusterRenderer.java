@@ -3,6 +3,7 @@ package com.example.gianpaolobasilico.tobike;
 import android.content.Context;
 
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.clustering.ClusterManager;
 import com.google.maps.android.clustering.view.DefaultClusterRenderer;
@@ -14,13 +15,11 @@ import com.google.maps.android.clustering.view.DefaultClusterRenderer;
 
 public class MyClusterRenderer extends DefaultClusterRenderer<mMarkerPostazione> {
 
-
     public MyClusterRenderer(Context context, GoogleMap map, ClusterManager<mMarkerPostazione> clusterManager) {
         super(context, map, clusterManager);
     }
 
-    protected void onBeforeClusterItemRendered(mMarkerPostazione item,
-                                               MarkerOptions markerOptions) {
+    protected void onBeforeClusterItemRendered(mMarkerPostazione item, MarkerOptions markerOptions) {
         markerOptions.icon(item.getMarker().getIcon());
         markerOptions.title(item.getmTitle());
 
@@ -31,5 +30,15 @@ public class MyClusterRenderer extends DefaultClusterRenderer<mMarkerPostazione>
         super.setOnClusterClickListener(listener);
     }
 
+    @Override
+    public Marker getMarker(mMarkerPostazione clusterItem) {
+        return super.getMarker(clusterItem);
+    }
+
+    @Override
+    public mMarkerPostazione getClusterItem(Marker marker) {
+        return super.getClusterItem(marker);
+
+    }
 
 }

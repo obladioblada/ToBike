@@ -18,5 +18,6 @@
                 android:hint="@string/search_hint"
                 android:background="@android:color/transparent"
                 android:inputType="textAutoCorrect"
-                android:imeOptions="actionSearch" />
+                android:imeOptions="actionSearch"
+                />
         </android.support.v7.widget.Toolbar>

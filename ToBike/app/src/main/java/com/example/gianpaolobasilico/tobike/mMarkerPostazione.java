@@ -31,6 +31,7 @@ public class mMarkerPostazione implements ClusterItem {
         return mPosition;
     }
 
+
     public int getmBikes(){
         return mBikes;
     }
@@ -38,18 +39,20 @@ public class mMarkerPostazione implements ClusterItem {
     public MarkerOptions getMarker() {
         MarkerOptions mo= new MarkerOptions().position(getPosition());
         mo.title(mTitle);
+        mo.flat(true);
+       // mo.icon(BitmapDescriptorFactory.fromResource(R.drawable.bike));
         if(mBikes<4){
-            //     mo.icon(BitmapDescriptorFactory.fromResource(R.drawable.marker_red));
-            mo.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+            mo.icon(BitmapDescriptorFactory.fromResource(R.drawable.redm));
         }else{
             if(mBikes<6){
                 //         mo.icon(BitmapDescriptorFactory.fromResource(R.drawable.marker_yellow));
-                mo.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW));
+                mo.icon(BitmapDescriptorFactory.fromResource(R.drawable.yellowm));
             }
             else
             {
                 //   mo.icon(BitmapDescriptorFactory.fromResource(R.drawable.marker_green));
-                mo.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+                mo.icon(BitmapDescriptorFactory.fromResource(R.drawable.greenm));
+
             }
         }
 
