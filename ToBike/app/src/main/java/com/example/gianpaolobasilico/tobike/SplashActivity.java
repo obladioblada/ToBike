@@ -5,13 +5,11 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
 public class SplashActivity extends AppCompatActivity {
-    MapsActivity main=new MapsActivity();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
                 Intent i = new Intent(SplashActivity.this, MapsActivity.class);
                 startActivity(i);
                 finish();
-
     }
 }

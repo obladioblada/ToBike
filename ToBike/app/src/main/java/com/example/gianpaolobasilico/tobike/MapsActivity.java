@@ -3,7 +3,6 @@ package com.example.gianpaolobasilico.tobike;
 
 //do NOT delete this two lines, is where I take the sh*t out of the markers! :D
 // https://developers.google.com/maps/documentation/android-api/utility/marker-clustering?hl=en
-
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -56,7 +55,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -85,9 +83,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private TextView numbicilibere;
     private TextView numbicioccupate;
     private Switch mode;
-    private TextView textmode;
-
-    // Create an instance of GoogleAPIClient.
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
     private Double myLatitude;
@@ -95,7 +90,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LocationManager locationManager;
     private FloatingActionButton myLocation;
     private FloatingActionButton navigation;
-    private Circle myLocationCircle;
     private CircleOptions myLocationCircleOptions;
     private String[] navigation_items;
     private int[] icon_list;
@@ -118,13 +112,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
      * The desired interval for location updates. Inexact. Updates may be more or less frequent.
      */
     public static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
-
     /**
      * The fastest rate for active location updates. Exact. Updates will never be more frequent
      * than this value.
      */
-    public static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
-            UPDATE_INTERVAL_IN_MILLISECONDS / 2;
+    public static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS = UPDATE_INTERVAL_IN_MILLISECONDS / 2;
 
 
 
@@ -144,62 +136,70 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         myLocationCircleOptions.strokeColor(Color.BLUE);
         myLocationCircleOptions.strokeWidth(2);
         if (mGoogleApiClient == null) {
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                     mGoogleApiClient = new GoogleApiClient.Builder(this)
                     .addConnectionCallbacks(this)
                     .addOnConnectionFailedListener(this)
                     .addApi(LocationServices.API)
                     .enableAutoManage(this, this)
                     .build();
-            //as soon as map is connected
-            mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        }
+                    //as soon as map is connected
+                    mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);}
         mPositionMarkerOption = new MarkerOptions();
         mPositionMarkerOption.icon(BitmapDescriptorFactory.fromResource(R.drawable.ncflat));
         mPositionMarkerOption.anchor(0.5f, 0.5f);
         mPositionMarkerOption.flat(true);
 
-        //handlign slidingUp panel
+        //handling slidingUp panel
         slidingUpPanelLayout=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
         fermata = (TextView)findViewById(R.id.fermata);
         numbicilibere = (TextView)findViewById(R.id.numbicilibere);
         numbicioccupate = (TextView)findViewById(R.id.numbicioccupate);
-        // false=available station mode
-        // true= available bike mode
-        textmode=(TextView)findViewById(R.id.textMode);
         mode=(Switch)findViewById(R.id.switchMode);
+        /**
+         * false=available station mode
+         * true= available bike mode
+         *
+         * L'applicazione inizia di default in BIKE MODE
+         * **/
         mode.setChecked(true);
         mode.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-               changeColorMode(isChecked);
-            }
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    /** metodo che cambia il colore dei markers delle postazione
+                     * in base alla modalità dell'applicazione
+                     *
+                     */
+                        changeColorMode(isChecked);
+                }
         });
 
         //set location floating action button;
         myLocation=(FloatingActionButton)findViewById(R.id.position);
         myLocation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+                @Override
+                public void onClick(View v) {
+                 /**controllo se gps abilitato*/
+                    locationManager=(LocationManager)getSystemService(Context.LOCATION_SERVICE);
+                    if ( !locationManager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+                            buildAlertMessageNoGps();
+                      }
+                    mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+                    if (mLastLocation != null) {
+                            myLatitude=mLastLocation.getLatitude();
+                            myLongitude=mLastLocation.getLongitude();
+                        if(mPositionMarker!=null)
+                                mPositionMarker.remove();
+                        mPositionMarkerOption.position(new LatLng(myLatitude,myLongitude));
+                        mPositionMarker=mMap.addMarker(mPositionMarkerOption);
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(myLatitude,myLongitude),16));
+                        }
 
-                locationManager=(LocationManager)getSystemService(Context.LOCATION_SERVICE);
-                if ( !locationManager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
-                    buildAlertMessageNoGps();
                 }
-                mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-                if (mLastLocation != null) {
-                    myLatitude=mLastLocation.getLatitude();
-                    myLongitude=mLastLocation.getLongitude();
-                    if(mPositionMarker!=null)
-                        mPositionMarker.remove();
-                    mPositionMarkerOption.position(new LatLng(myLatitude,myLongitude));
-                    mPositionMarker=mMap.addMarker(mPositionMarkerOption);
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(myLatitude,myLongitude),16));
-                }
-
-            }
         });
 
-        //handling navigation floating button
+        /**
+         * gestione floating button relativo alla navigazione
+         */
         navigation =(FloatingActionButton)findViewById(R.id.navigation);
         navigation.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -216,16 +216,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
         mDrawerLayout.setDrawerListener(drawerToggle);
-
-        navigation_items= new String[]{getString(R.string.login),getString(R.string.preferred),getString(R.string.setting),
-                getString(R.string.about)};
-        icon_list = new int[]{R.drawable.login,R.drawable.ic_add_location_black_24dp,R.drawable.ic_settings_black_24dp,
-                R.drawable.ic_person_black_24dp};
-
+        /**
+         * creazione della lista da inserire nella navigation drawer
+         */
+        navigation_items= new String[]{getString(R.string.login),getString(R.string.preferred),getString(R.string.setting), getString(R.string.about)};
+        icon_list = new int[]{R.drawable.login,R.drawable.ic_add_location_black_24dp,R.drawable.ic_settings_black_24dp, R.drawable.ic_person_black_24dp};
         MAdapterList mAdapter=new MAdapterList(this, navigation_items,icon_list);
         mDrawerList.setAdapter(mAdapter);
         mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
-
         drawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,toolbar,R.string.navigation_drawer_open, R.string.navigation_drawer_closed) {
 
            // Called when a drawer has settled in a completely closed state.
@@ -243,7 +241,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         };
 
-        //handling autocomplete
+        /**
+         * gestione autocompleteText view
+         *
+         *
+         * bisogna inserire la possibilità di cercare anche una via
+         */
         DisplayMetrics displaymetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
         autoCompleteTextView=(AutoCompleteTextView)findViewById(R.id.autocomplete);
@@ -267,83 +270,78 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if(actionId==EditorInfo.IME_ACTION_SEARCH)
-                {   //implementare che al click del tasto di ricerca la camera si deve spostare sulla postazione
-                    // e deve spuntare lo sliding in basso col numero di fermate
+                {   /**
+                    al click del tasto di ricerca la camera si sposta sulla postazione spunta lo sliding in basso col numero di fermate
+                    */
                     autoCompleteTextView.clearFocus();
                     station_to_reach=autoCompleteTextView.getText().toString();
                     InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
                     for (Marker m:mClusterManager.getMarkerCollection().getMarkers()) {
-                        if( station_to_reach.equals(m.getTitle())){
-                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(m.getPosition(), 16));
-                            fermata.setText(m.getTitle());
-                            numbicilibere.setText(String.valueOf(myrend.getClusterItem(m).getmFree()));
-                            numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
-                            slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
-                            Log.i("fermata", m.getTitle());
-                            autoCompleteTextView.setText("");
-                            return true;}
-                          }
+                            if( station_to_reach.equals(m.getTitle())){
+                                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(m.getPosition(), 16));
+                                fermata.setText(m.getTitle());
+                                numbicilibere.setText(String.valueOf(myrend.getClusterItem(m).getmFree()));
+                                numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
+                                slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                                Log.i("fermata", m.getTitle());
+                                autoCompleteTextView.setText("");
+                                return true;
+                            }
+                    }
 
                 }
-                return false;}
+                return false;
+            }
 
         });
 
     }
 
+    /**
+     metodo per la gestione del percorso da-a
+     */
+    private void findRoute() {}
 
-
-    private void findRoute() {
-
-    }
-
-    //-------------change color markers with respect to mode state-------------------
+    /**
+     metodo per gestire colore markers
+     */
     private void changeColorMode(boolean isChecked) {
-
-        for (Marker m:mClusterManager.getMarkerCollection().getMarkers()) {
+        for (Marker m : mClusterManager.getMarkerCollection().getMarkers()) {
             int tocheck;
-            int bikered=R.drawable.redm;
-            int bikegreen=R.drawable.greenm;
-            int stationred=R.drawable.ic_add_location_black_24dp;
-            int stationgreen=R.drawable.ic_directions_bike_black_24dp;
-
+            int bikered = R.drawable.redm;
+            int bikegreen = R.drawable.greenm;
+            int stationred = R.drawable.ic_add_location_black_24dp;
+            int stationgreen = R.drawable.ic_directions_bike_black_24dp;
             //check color for bike
-            if(isChecked){
-                tocheck=myrend.getClusterItem(m).getmBikes();
-                if(tocheck<=2){
-                    m.setIcon(BitmapDescriptorFactory.fromResource(bikered));
-                }else{
-                    if(tocheck<=4){
-                        m.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.yellowm));
-                    }
+            if (isChecked) {
+                tocheck = myrend.getClusterItem(m).getmBikes();
+                if (tocheck <= 2) {
+                    m.setIcon(BitmapDescriptorFactory.fromResource(bikered));}
+                else {
+                    if (tocheck <= 4) {
+                        m.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.yellowm));}
                     else {
-                        m.setIcon(BitmapDescriptorFactory.fromResource(bikegreen));
-                    }
+                        m.setIcon(BitmapDescriptorFactory.fromResource(bikegreen));}
                 }
             }
-            //check color for statiomn
-            else{
-                tocheck=myrend.getClusterItem(m).getmFree();
-                if(tocheck<=2){
-                    m.setIcon(BitmapDescriptorFactory.fromResource(bikered));
-                }else{
-                    if(tocheck<=4){
-                        m.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.yellowm));
-                    }
+            //check color for station
+            else {
+                tocheck = myrend.getClusterItem(m).getmFree();
+                if (tocheck <= 2) {
+                    m.setIcon(BitmapDescriptorFactory.fromResource(bikered));}
+                else {
+                    if (tocheck <= 4) {
+                        m.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.yellowm));}
                     else {
-                        m.setIcon(BitmapDescriptorFactory.fromResource(bikegreen));
-                    }
+                        m.setIcon(BitmapDescriptorFactory.fromResource(bikegreen));}
+
+                }
+
 
             }
-
-
-
-
-
         }
     }
-
     protected void onStart() {
         super.onStart();
         mGoogleApiClient.connect();
@@ -356,7 +354,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
         Log.i("lifecycle", "onstop");
     }
-
     @Override
     protected void onPause() {
         super.onPause();
@@ -472,8 +469,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
+     * This is where we can add markers or lines, add listeners or move the camera.
      * If Google Play services is not installed on the device, the user will be prompted to install
      * it inside the SupportMapFragment. This method will only be triggered once the user has
      * installed Google Play services and returned to the app.
@@ -490,7 +486,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
-                Log.i("ciao", "ciao");
                 slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
             }
         });
@@ -573,6 +568,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
              startLocationUpdates();}
     }
 
+
+    /**
+     * costruzione del messaggio per la mancanza del gps nel telefono
+     * */
+
     private void buildAlertMessageNoGps() {
         final AlertDialog.Builder builder=new AlertDialog.Builder(this);
         builder.setMessage(R.string.nogps);
@@ -617,7 +617,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onConnectionSuspended(int i) {
-
     }
 
     @Override
@@ -633,9 +632,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
-
+    /**
+     * adapter per la creazione della lista nella navigation drawer
+     * */
     private class MAdapterList extends BaseAdapter {
-
         private final Context context;
         private final String[] navigation_items;
         private final int[] item_icons;
