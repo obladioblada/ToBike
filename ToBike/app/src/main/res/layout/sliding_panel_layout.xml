@@ -11,47 +11,70 @@
                   android:orientation="horizontal"
                   android:layout_width="match_parent"
                   android:layout_height="64dp"
-        style="@style/ToBikeTheme"
-                  android:background="@color/colorPrimaryDark"
-                  android:gravity="center|start|left|top"
-                  android:weightSum="1"
-                  >
+                  style="@style/ToBikeTheme"
+                  android:background="@color/white"
+                  android:weightSum="1">
 
-    <TextView
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:text="fermata"
-        android:id="@+id/fermata"
-        android:gravity="top|left"
-        android:layout_weight="0.7"
-        android:paddingLeft="20dp"
-        android:paddingTop="20dp"
-        android:textColor="@color/white"
-        android:singleLine="true"
-        android:textStyle="bold"
-        android:theme="@style/ToBikeTheme"
-        android:textSize="24sp" />
 
         <TextView
-         android:layout_width="0dp"
-         android:layout_height="match_parent"
-         android:text="num"
-         android:id="@+id/numbici"
-         android:gravity="top|right"
-         android:layout_weight="0.3"
-         android:paddingEnd="50dp"
-         android:paddingRight="50dp"
-         android:paddingTop="20dp"
-         android:textColor="@color/white"
-         android:singleLine="true"
-         android:theme="@style/ToBikeTheme"
-         android:textSize="24sp"
-         android:textStyle="bold"
-        android:elevation="9dp"
-        android:enabled="false"
-        android:ellipsize="start" />
-</LinearLayout>
+             android:layout_width="0dp"
+             android:layout_height="match_parent"
+             android:gravity="center_vertical|start"
+             android:text="fermata"
+             android:id="@+id/fermata"
+             android:layout_weight="0.4"
+             android:paddingLeft="8dp"
+             android:textColor="@color/colorPrimary"
+             android:singleLine="true"
+             android:textStyle="bold"
+             android:theme="@style/ToBikeTheme"
+             android:textSize="18sp"
+            />
+
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:src="@drawable/postazioni_libere"
+            android:gravity="bottom"
+            android:layout_weight="0.2"/>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:text="num"
+            android:id="@+id/numbicilibere"
+            android:textColor="@color/colorPrimary"
+            android:singleLine="true"
+            android:theme="@style/ToBikeTheme"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:enabled="false"
+            android:gravity="center_vertical"
+            android:layout_weight="0.1"
+            android:padding="4dp"/>
+
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:src="@drawable/postazioni_con_bici"
+            android:gravity="bottom"
+            android:layout_weight="0.2"
+            />
 
 
-
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:text="num"
+                android:id="@+id/numbicioccupate"
+                android:textColor="@color/colorPrimary"
+                android:singleLine="true"
+                android:theme="@style/ToBikeTheme"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:enabled="false"
+                android:gravity="center_vertical"
+                android:layout_weight="0.1"
+                android:padding="4dp"/>
+    </LinearLayout>
 </LinearLayout>

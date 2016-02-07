@@ -35,10 +35,13 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.BaseAdapter;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -79,7 +82,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ActionBarDrawerToggle drawerToggle;
     private Toolbar toolbar;
     private TextView fermata;
-    private TextView numBici;
+    private TextView numbicilibere;
+    private TextView numbicioccupate;
+    private Switch mode;
+    private TextView textmode;
+
     // Create an instance of GoogleAPIClient.
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
@@ -141,6 +148,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     .addConnectionCallbacks(this)
                     .addOnConnectionFailedListener(this)
                     .addApi(LocationServices.API)
+                    .enableAutoManage(this, this)
                     .build();
             //as soon as map is connected
             mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
@@ -153,7 +161,19 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         //handlign slidingUp panel
         slidingUpPanelLayout=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
         fermata = (TextView)findViewById(R.id.fermata);
-        numBici= (TextView)findViewById(R.id.numbici);
+        numbicilibere = (TextView)findViewById(R.id.numbicilibere);
+        numbicioccupate = (TextView)findViewById(R.id.numbicioccupate);
+        // false=available station mode
+        // true= available bike mode
+        textmode=(TextView)findViewById(R.id.textMode);
+        mode=(Switch)findViewById(R.id.switchMode);
+        mode.setChecked(true);
+        mode.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+               changeColorMode(isChecked);
+            }
+        });
 
         //set location floating action button;
         myLocation=(FloatingActionButton)findViewById(R.id.position);
@@ -257,9 +277,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         if( station_to_reach.equals(m.getTitle())){
                             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(m.getPosition(), 16));
                             fermata.setText(m.getTitle());
-                            numBici.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
+                            numbicilibere.setText(String.valueOf(myrend.getClusterItem(m).getmFree()));
+                            numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
                             slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                             Log.i("fermata", m.getTitle());
+                            autoCompleteTextView.setText("");
                             return true;}
                           }
 
@@ -270,8 +292,56 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+
+
     private void findRoute() {
 
+    }
+
+    //-------------change color markers with respect to mode state-------------------
+    private void changeColorMode(boolean isChecked) {
+
+        for (Marker m:mClusterManager.getMarkerCollection().getMarkers()) {
+            int tocheck;
+            int bikered=R.drawable.redm;
+            int bikegreen=R.drawable.greenm;
+            int stationred=R.drawable.ic_add_location_black_24dp;
+            int stationgreen=R.drawable.ic_directions_bike_black_24dp;
+
+            //check color for bike
+            if(isChecked){
+                tocheck=myrend.getClusterItem(m).getmBikes();
+                if(tocheck<=2){
+                    m.setIcon(BitmapDescriptorFactory.fromResource(bikered));
+                }else{
+                    if(tocheck<=4){
+                        m.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.yellowm));
+                    }
+                    else {
+                        m.setIcon(BitmapDescriptorFactory.fromResource(bikegreen));
+                    }
+                }
+            }
+            //check color for statiomn
+            else{
+                tocheck=myrend.getClusterItem(m).getmFree();
+                if(tocheck<=2){
+                    m.setIcon(BitmapDescriptorFactory.fromResource(bikered));
+                }else{
+                    if(tocheck<=4){
+                        m.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.yellowm));
+                    }
+                    else {
+                        m.setIcon(BitmapDescriptorFactory.fromResource(bikegreen));
+                    }
+
+            }
+
+
+
+
+
+        }
     }
 
     protected void onStart() {
@@ -329,7 +399,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             public boolean onClusterItemClick(mMarkerPostazione mMarkerPostazione) {
                 slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                 fermata.setText(mMarkerPostazione.getmTitle());
-                numBici.setText(String.valueOf(mMarkerPostazione.getmBikes()));
+                numbicioccupate.setText(String.valueOf(mMarkerPostazione.getmBikes()));
+                numbicilibere.setText(String.valueOf(mMarkerPostazione.getmFree()));
                 getMap().animateCamera(CameraUpdateFactory.newLatLng(mMarkerPostazione.getPosition()));
                 return true;
             }
@@ -371,7 +442,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void startVoiceRecognitionActivity() {
         Intent intent=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "say my name");
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "find your station");
         startActivityForResult(intent, REQUEST_CODE);
     }
 
@@ -387,7 +458,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if( station_said.equals(m.getTitle())){
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(m.getPosition(), 16));
                     fermata.setText(m.getTitle());
-                    numBici.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
+                    numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
+                    numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmFree()));
                     slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                     Log.i("fermata", m.getTitle());
                     }
@@ -409,6 +481,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(45.0704900,7.6868200),12));
         setUpClusterer();
         mMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
         doReq();
@@ -445,7 +518,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 double lng = person.getDouble("lng");
                                 lng=lng/1e6;
                                 int bikes = person.getInt("bikes");
-                                String free = person.getString("free");
+                                int free = person.getInt("free");
                                 String timestamp=person.getString("timestamp");
 
                                 jsonResponse += "id: " + id + "\n\n";
@@ -456,7 +529,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 jsonResponse += "free: " + free + "\n\n";
                                 jsonResponse += "timestamp: " + timestamp + "\n\n";
 
-                                mMarkerPostazione am= new mMarkerPostazione(lat,lng,name,bikes);
+                                mMarkerPostazione am= new mMarkerPostazione(lat,lng,name,bikes,free);
                                 mClusterManager.addItem(am);
                             }
 

@@ -8,17 +8,20 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:paddingLeft="16dp"
-        android:id="@+id/icon_item"/>
+        android:id="@+id/icon_item"
+        android:tint="#727272"
+        />
 <TextView
     android:id="@+id/textViewItem"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:text="ciao"
     android:paddingLeft="56dp"
     android:textSize="14sp"
     android:textStyle="bold"
-    android:layout_gravity="center|start"
-    android:textColor="#000000"
+    android:gravity="center_vertical|start"
+    android:layout_gravity="center_vertical"
+    android:textColor="#727272"
 
     />
 </LinearLayout>
