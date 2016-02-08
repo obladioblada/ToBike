@@ -1,7 +1,7 @@
 package com.example.gianpaolobasilico.tobike;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 
 public class SettingActivity extends AppCompatActivity {
@@ -15,7 +15,10 @@ public class SettingActivity extends AppCompatActivity {
         setContentView(R.layout.activity_setting);
         toolbar=(Toolbar)findViewById(R.id.setting_toolbar);
         setSupportActionBar(toolbar);
+        assert getSupportActionBar() != null;
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle("Impostazioni");
+
+
     }
+
 }

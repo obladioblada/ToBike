@@ -14,7 +14,8 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
         toolbar=(Toolbar)findViewById(R.id.login_toolbar);
         setSupportActionBar(toolbar);
+        assert getSupportActionBar() != null;
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle("Login");
+
     }
 }

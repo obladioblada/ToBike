@@ -3,6 +3,7 @@ package com.example.gianpaolobasilico.tobike;
 
 //do NOT delete this two lines, is where I take the sh*t out of the markers! :D
 // https://developers.google.com/maps/documentation/android-api/utility/marker-clustering?hl=en
+
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -42,9 +43,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -59,6 +62,7 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterManager;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
@@ -102,7 +106,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private SlidingUpPanelLayout slidingUpPanelLayout;
     private Marker mPositionMarker;
     private MarkerOptions mPositionMarkerOption;
-    String url = "http://api.citybik.es/to-bike.json";
+    private JSONArray routes;
+    private JSONArray steps;
+    private JSONObject leg;
+    private String polyline="";
+
+
+
+    String stationRequest = "http://api.citybik.es/to-bike.json";
+    String directionRequest = "https://maps.googleapis.com/maps/api/directions/json?";
+
     // Declare a variable for the cluster manager.
     private ClusterManager<mMarkerPostazione> mClusterManager;
     private MyClusterRenderer myrend;
@@ -117,6 +130,22 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
      * than this value.
      */
     public static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS = UPDATE_INTERVAL_IN_MILLISECONDS / 2;
+
+    /**
+     * Stringhe per il salvataggio degli stati
+     */
+    static final String STATE_MODE = "stateMode";
+    static final String POSITION_MAPPA = "PositionMappa";
+
+
+    /**
+     * Stringhe per illa richiesta della direzione
+     */
+    private static final String KEY="&key=AIzaSyAbOWOtYsr1-uDMrC6eC4Ycy1XVEWP1P-g";
+    private static final String MODE="&mode=driving";
+    private static final String AVOID="&avoid=highways";
+
+
 
 
 
@@ -211,7 +240,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mDrawerList=(ListView)findViewById(R.id.drawer_items);
         toolbar=(Toolbar)findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        assert getSupportActionBar() != null;
         getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_menu_black_18dp);
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
@@ -299,14 +328,158 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     /**
+     The system calls this method when the user is leaving your activity and
+     passes it the Bundle object that will be saved in the event that your activity is destroyed unexpectedly.
+     If the system must recreate the activity instance later, it passes the same Bundle object to both
+     the onRestoreInstanceState() and onCreate() methods.
+     */
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        //mi salvo modalità applicazione
+        outState.putBoolean(STATE_MODE,mode.isChecked());
+        //mi salvo la posizione della camera (mappa)
+        outState.putParcelable(POSITION_MAPPA,mMap.getCameraPosition().target);
+
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        //resetto modalità applicazione
+        mode.setChecked(savedInstanceState.getBoolean(STATE_MODE));
+        //resetto posizione camera
+
+    }
+
+    /**
      metodo per la gestione del percorso da-a
      */
-    private void findRoute() {}
+    private void findRoute() {
+        LatLng destination_position;
+        String origin="origin=";
+        String destination="destination=";
+
+        for (Marker m:mClusterManager.getMarkerCollection().getMarkers()) {
+            if(station_to_reach!=null)
+                if( station_to_reach.equals(m.getTitle())){
+                    destination_position=myrend.getClusterItem(m).getPosition();
+                    origin+=String.valueOf(myLatitude);
+                    origin+=",";
+                    origin+=String.valueOf(myLongitude);
+                    destination+=String.valueOf(destination_position.latitude);
+                    destination+=",";
+                    destination+=String.valueOf(destination_position.longitude);
+                    directionRequest+=origin;
+                    directionRequest+="&";
+                    directionRequest+=destination;
+                    directionRequest+=AVOID;
+                    directionRequest+=MODE;
+                    directionRequest+=KEY;
+                    Log.i("station", station_to_reach);
+                    Log.i("station", station_to_reach+destination_position.latitude);
+                    Log.i("station", station_to_reach+destination_position.longitude);
+                    doDirectionRequest(directionRequest);
+                    Log.i("station",directionRequest);
+                    directionRequest = "https://maps.googleapis.com/maps/api/directions/json?";
+                }
+        }
+
+    }
+
+
+    public void doDirectionRequest(String directionRequest){
+        JsonObjectRequest jsonObjReq = new JsonObjectRequest(Request.Method.GET, directionRequest, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                try {
+                    PolylineOptions lineOptions = new PolylineOptions();
+
+
+                    String status = response.getString("status");
+                    Log.i("status", status);
+                    //prendo i routes
+                    routes =response.getJSONArray("routes");
+                    //prendo l'unico leg disponibile del primo route
+                     leg=routes.getJSONObject(0).getJSONArray("legs").getJSONObject(0);
+                    //prendo l'array di steps del leg
+                      steps=leg.getJSONArray("steps");
+                      for(int i=0;i<steps.length();i++)
+                             {  polyline = (String)((JSONObject)((JSONObject)steps.get(i)).get("polyline")).get("points");
+                                 List<LatLng> list = decodePoly(polyline);
+                                 for(int k=0;k<list.size();k++)
+                                 {   lineOptions.add(list.get(k));
+                                     lineOptions.width(5);
+                                     lineOptions.color(Color.RED);
+                                     mMap.addPolyline(lineOptions);
+                                 }
+                             }
+                    Log.i("status", steps.get(0).toString());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    Toast.makeText(getApplicationContext(),
+                            "Error: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        }, new Response.ErrorListener() {
+
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+                Toast.makeText(getApplicationContext(),
+                        "Error: " + error.getMessage(),
+                        Toast.LENGTH_LONG).show();
+            }
+        });
+
+        jsonObjReq.setRetryPolicy(new DefaultRetryPolicy(20000,1,1.0f));
+        MySingleton.getInstance(this).addToRequestQueue(jsonObjReq);
+    }
+
+
+    private List<LatLng> decodePoly(String encoded) {
+
+        List<LatLng> poly = new ArrayList<LatLng>();
+        int index = 0, len = encoded.length();
+        int lat = 0, lng = 0;
+
+        while (index < len) {
+            int b, shift = 0, result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lng += dlng;
+
+            LatLng p = new LatLng((((double) lat / 1E5)),
+                    (((double) lng / 1E5)));
+            poly.add(p);
+        }
+
+        return poly;
+    }
+
+
 
     /**
      metodo per gestire colore markers
      */
     private void changeColorMode(boolean isChecked) {
+        mMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
         for (Marker m : mClusterManager.getMarkerCollection().getMarkers()) {
             int tocheck;
             int bikered = R.drawable.redm;
@@ -342,10 +515,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
+
     protected void onStart() {
         super.onStart();
         mGoogleApiClient.connect();
         Log.i("lifecycle", "onstart");
+
+
     }
 
     protected void onStop() {
@@ -367,8 +543,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onResume();
         if (mGoogleApiClient.isConnected()) {
             startLocationUpdates();
-            Log.i("lifecycle", "onresume");
         }
+        Log.i("lifecycle", "onresume");
     }
 
     @Override
@@ -394,6 +570,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mClusterManager.setOnClusterItemClickListener(new ClusterManager.OnClusterItemClickListener<mMarkerPostazione>() {
             @Override
             public boolean onClusterItemClick(mMarkerPostazione mMarkerPostazione) {
+                station_to_reach=mMarkerPostazione.getmTitle();
                 slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                 fermata.setText(mMarkerPostazione.getmTitle());
                 numbicioccupate.setText(String.valueOf(mMarkerPostazione.getmBikes()));
@@ -427,6 +604,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         switch (item.getItemId()) {
             case android.R.id.home:
                 mDrawerLayout.openDrawer(GravityCompat.START);
+
                 return true;
             case  R.id.voicesearch:
                 startVoiceRecognitionActivity();
@@ -436,6 +614,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     * metodo per il riconoscimento vocale
+     */
     private void startVoiceRecognitionActivity() {
         Intent intent=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
@@ -447,24 +628,21 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE && resultCode == RESULT_OK){
             ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-            String station_said=new String();
-            station_said=matches.get(0);
-            station_to_reach=station_said;
-            autoCompleteTextView.setText(station_said);
+            station_to_reach=matches.get(0);;
+            autoCompleteTextView.setText(station_to_reach);
             for (Marker m:mClusterManager.getMarkerCollection().getMarkers()) {
-                if( station_said.equals(m.getTitle())){
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(m.getPosition(), 16));
-                    fermata.setText(m.getTitle());
-                    numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
-                    numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmFree()));
-                    slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
-                    Log.i("fermata", m.getTitle());
+                    if( station_to_reach.equals(m.getTitle())){
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(m.getPosition(), 16));
+                        fermata.setText(m.getTitle());
+                        numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
+                        numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmFree()));
+                        slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                        Log.i("fermata", m.getTitle());
                     }
             }
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
-
 
     /**
      * Manipulates the map once available.
@@ -480,7 +658,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(45.0704900,7.6868200),12));
         setUpClusterer();
         mMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
-        doReq();
+        doStationRequest();
         autoCompleteTextView.setAdapter(acAdapter);
         is_ready=true;
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
@@ -491,8 +669,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
      }
 
-    public void doReq(){
-        JsonArrayRequest req = new JsonArrayRequest(url,
+    public void doStationRequest(){
+        JsonArrayRequest req = new JsonArrayRequest(stationRequest,
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray response) {
@@ -549,11 +727,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         MySingleton.getInstance(this).addToRequestQueue(req);
     }
 
+
     public GoogleMap getMap() {
         return mMap;}
 
     @Override
     public void onConnected(Bundle bundle) {
+        Log.i("lifecycle", "onconnected");
         //as soon as map is connected
         mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (mLastLocation != null) {
@@ -563,7 +743,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 mPositionMarker.remove();
                mPositionMarkerOption.position(new LatLng(myLatitude, myLongitude));
               mPositionMarker=mMap.addMarker(mPositionMarkerOption);
-             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(myLatitude, myLongitude),16));
+            if(bundle!=null)
+                mMap.moveCamera(CameraUpdateFactory.newLatLng((LatLng)bundle.getParcelable(POSITION_MAPPA)));
+             //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(myLatitude, myLongitude),16));
              createLocationRequest();
              startLocationUpdates();}
     }
