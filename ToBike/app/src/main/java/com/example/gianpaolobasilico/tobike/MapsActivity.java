@@ -41,7 +41,6 @@ import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -62,6 +61,7 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterManager;
@@ -94,6 +94,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LocationManager locationManager;
     private FloatingActionButton myLocation;
     private FloatingActionButton navigation;
+    private FloatingActionButton clear;
     private CircleOptions myLocationCircleOptions;
     private String[] navigation_items;
     private int[] icon_list;
@@ -110,6 +111,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private JSONArray steps;
     private JSONObject leg;
     private String polyline="";
+    private  PolylineOptions lineOptions ;
+    private List<Polyline> polylineList;
 
 
 
@@ -142,7 +145,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
      * Stringhe per illa richiesta della direzione
      */
     private static final String KEY="&key=AIzaSyAbOWOtYsr1-uDMrC6eC4Ycy1XVEWP1P-g";
-    private static final String MODE="&mode=driving";
+    //MODE : fare decidere all'utente se andare a piedi o in macchina(??)
+    private static final String MODE="&mode=walking";
     private static final String AVOID="&avoid=highways";
 
 
@@ -204,6 +208,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         //set location floating action button;
         myLocation=(FloatingActionButton)findViewById(R.id.position);
+        navigation =(FloatingActionButton)findViewById(R.id.navigation);
+        navigation.setEnabled(false);
+        navigation.setClickable(false);
+        clear=(FloatingActionButton)findViewById(R.id.clear);
+        clear.setVisibility(View.GONE);
+        clear.hide();
         myLocation.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -229,11 +239,27 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         /**
          * gestione floating button relativo alla navigazione
          */
-        navigation =(FloatingActionButton)findViewById(R.id.navigation);
+
         navigation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 findRoute();
+                navigation.setVisibility(View.INVISIBLE);
+                clear.setVisibility(View.VISIBLE);
+                clear.setEnabled(false);
+            }
+        });
+        /**
+         * gestione floating button relativo alla navigazione
+         */
+
+        clear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clearMap();
+                clear.setVisibility(v.INVISIBLE);
+                navigation.setVisibility(View.VISIBLE);
+
             }
         });
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -313,6 +339,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 numbicilibere.setText(String.valueOf(myrend.getClusterItem(m).getmFree()));
                                 numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
                                 slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                                navigation.setEnabled(true);
+                                navigation.setClickable(true);
                                 Log.i("fermata", m.getTitle());
                                 autoCompleteTextView.setText("");
                                 return true;
@@ -324,6 +352,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
 
         });
+
+    }
+
+    //metodo per cancellare percorso dalla mappa
+    public void clearMap(){
+        for (Polyline p:polylineList) {
+            p.remove();
+        }
 
     }
 
@@ -340,6 +376,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         //mi salvo modalità applicazione
         outState.putBoolean(STATE_MODE,mode.isChecked());
         //mi salvo la posizione della camera (mappa)
+        if(mMap!=null)
         outState.putParcelable(POSITION_MAPPA,mMap.getCameraPosition().target);
 
     }
@@ -354,7 +391,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     /**
-     metodo per la gestione del percorso da-a
+     costruzione stringa richiesta http per la direzione
      */
     private void findRoute() {
         LatLng destination_position;
@@ -387,16 +424,21 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
     }
-
+    /**
+     metodo per la gestione del percorso da-a
+     */
 
     public void doDirectionRequest(String directionRequest){
         JsonObjectRequest jsonObjReq = new JsonObjectRequest(Request.Method.GET, directionRequest, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 try {
-                    PolylineOptions lineOptions = new PolylineOptions();
-
-
+                     polylineList =new ArrayList<>();
+                    if(polylineList!=null){
+                        clearMap();
+                    }
+                    lineOptions = new PolylineOptions();
+                    polylineList =new ArrayList<>();
                     String status = response.getString("status");
                     Log.i("status", status);
                     //prendo i routes
@@ -410,10 +452,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                  List<LatLng> list = decodePoly(polyline);
                                  for(int k=0;k<list.size();k++)
                                  {   lineOptions.add(list.get(k));
-                                     lineOptions.width(5);
+                                     lineOptions.width(8);
                                      lineOptions.color(Color.RED);
-                                     mMap.addPolyline(lineOptions);
+                                     polylineList.add(mMap.addPolyline(lineOptions));
+                                //inserito da peppe
+                                     if(k!=list.size()-1)
+                                       k++;
                                  }
+                                 clear.setEnabled(true);
                              }
                     Log.i("status", steps.get(0).toString());
                 } catch (JSONException e) {
@@ -438,7 +484,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         MySingleton.getInstance(this).addToRequestQueue(jsonObjReq);
     }
 
-
+     //decodifica polyline
     private List<LatLng> decodePoly(String encoded) {
 
         List<LatLng> poly = new ArrayList<LatLng>();
@@ -479,39 +525,43 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
      metodo per gestire colore markers
      */
     private void changeColorMode(boolean isChecked) {
-        mMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
-        for (Marker m : mClusterManager.getMarkerCollection().getMarkers()) {
-            int tocheck;
-            int bikered = R.drawable.redm;
-            int bikegreen = R.drawable.greenm;
-            int stationred = R.drawable.ic_add_location_black_24dp;
-            int stationgreen = R.drawable.ic_directions_bike_black_24dp;
-            //check color for bike
-            if (isChecked) {
-                tocheck = myrend.getClusterItem(m).getmBikes();
-                if (tocheck <= 2) {
-                    m.setIcon(BitmapDescriptorFactory.fromResource(bikered));}
-                else {
-                    if (tocheck <= 4) {
-                        m.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.yellowm));}
-                    else {
-                        m.setIcon(BitmapDescriptorFactory.fromResource(bikegreen));}
+        if (mMap != null) {
+            mMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
+            for (Marker m : mClusterManager.getMarkerCollection().getMarkers()) {
+                int tocheck;
+                int bikered = R.drawable.redm;
+                int bikegreen = R.drawable.greenm;
+                int stationred = R.drawable.ic_add_location_black_24dp;
+                int stationgreen = R.drawable.ic_directions_bike_black_24dp;
+                //check color for bike
+                if (isChecked) {
+                    tocheck = myrend.getClusterItem(m).getmBikes();
+                    if (tocheck <= 2) {
+                        m.setIcon(BitmapDescriptorFactory.fromResource(bikered));
+                    } else {
+                        if (tocheck <= 4) {
+                            m.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.yellowm));
+                        } else {
+                            m.setIcon(BitmapDescriptorFactory.fromResource(bikegreen));
+                        }
+                    }
                 }
-            }
-            //check color for station
-            else {
-                tocheck = myrend.getClusterItem(m).getmFree();
-                if (tocheck <= 2) {
-                    m.setIcon(BitmapDescriptorFactory.fromResource(bikered));}
+                //check color for station
                 else {
-                    if (tocheck <= 4) {
-                        m.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.yellowm));}
-                    else {
-                        m.setIcon(BitmapDescriptorFactory.fromResource(bikegreen));}
+                    tocheck = myrend.getClusterItem(m).getmFree();
+                    if (tocheck <= 2) {
+                        m.setIcon(BitmapDescriptorFactory.fromResource(bikered));
+                    } else {
+                        if (tocheck <= 4) {
+                            m.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.yellowm));
+                        } else {
+                            m.setIcon(BitmapDescriptorFactory.fromResource(bikegreen));
+                        }
+
+                    }
+
 
                 }
-
-
             }
         }
     }
@@ -575,6 +625,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 fermata.setText(mMarkerPostazione.getmTitle());
                 numbicioccupate.setText(String.valueOf(mMarkerPostazione.getmBikes()));
                 numbicilibere.setText(String.valueOf(mMarkerPostazione.getmFree()));
+                navigation.setEnabled(true);
+                navigation.setClickable(true);
                 getMap().animateCamera(CameraUpdateFactory.newLatLng(mMarkerPostazione.getPosition()));
                 return true;
             }
@@ -655,7 +707,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(45.0704900,7.6868200),12));
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(45.0704900,7.6868200),14));
         setUpClusterer();
         mMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
         doStationRequest();
@@ -665,6 +717,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onMapClick(LatLng latLng) {
                 slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+                navigation.setEnabled(false);
+                navigation.setClickable(false);
             }
         });
      }
