@@ -5,17 +5,78 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context="com.example.gianpaolobasilico.tobike.LoginActivity"
-    app:theme="@style/SecondaryActivityTheme">
+    app:theme="@style/SecondaryActivityTheme"
+    android:background="@color/colorPrimary"
+    android:orientation="vertical"
+    android:weightSum="1"
+    android:clickable="false">
 
     <android.support.v7.widget.Toolbar
         android:id="@+id/login_toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/colorPrimaryDark"
-        android:elevation="4dp"
         app:theme="@style/SecondaryActivityTheme"
         xmlns:android="http://schemas.android.com/apk/res/android"
         >
-         </android.support.v7.widget.Toolbar>
+    </android.support.v7.widget.Toolbar>
+
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="textEmailAddress"
+        android:ems="10"
+        android:id="@+id/user"
+        android:hint="username"
+        android:textColor="@color/white"
+        android:textColorHint="@color/white"
+        android:backgroundTint="@color/colorButtons"
+        android:gravity="center"
+        android:layout_below="@+id/login_toolbar"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="164dp" />
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="textPassword"
+        android:ems="10"
+        android:id="@+id/psw"
+        android:hint="password"
+        android:textColor="@color/white"
+        android:textColorHint="@color/white"
+        android:backgroundTint="@color/colorButtons"
+        android:gravity="center"
+        android:layout_below="@+id/user"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="30dp" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Log in"
+        android:id="@+id/login"
+        android:layout_below="@+id/psw"
+        android:layout_marginTop="30dp"
+        android:layout_centerHorizontal="true"
+        android:background="@color/colorPrimary"
+        android:textColor="@color/white"
+        style="?android:attr/borderlessButtonStyle"
+        />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="forgot your password?"
+        android:id="@+id/pswforgot"
+        android:layout_below="@+id/login"
+        android:layout_marginTop="30dp"
+        android:layout_centerHorizontal="true"
+        android:background="@color/colorPrimary"
+        android:textColor="@color/colorButtons"
+        style="?android:attr/borderlessButtonStyle"
+        android:textStyle="normal|italic"
+        android:textSize="10dp"/>
+
 
 </RelativeLayout>

@@ -11,6 +11,7 @@ import android.content.res.Configuration;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.support.design.widget.FloatingActionButton;
@@ -41,6 +42,7 @@ import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -113,7 +115,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private String polyline="";
     private  PolylineOptions lineOptions ;
     private List<Polyline> polylineList;
-
+    private List<ArrayList<LatLng>> listasegmenti;
 
 
     String stationRequest = "http://api.citybik.es/to-bike.json";
@@ -206,6 +208,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
         });
 
+
         //set location floating action button;
         myLocation=(FloatingActionButton)findViewById(R.id.position);
         navigation =(FloatingActionButton)findViewById(R.id.navigation);
@@ -262,6 +265,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             }
         });
+        polylineList =new ArrayList<>();
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mDrawerList=(ListView)findViewById(R.id.drawer_items);
         toolbar=(Toolbar)findViewById(R.id.toolbar);
@@ -360,7 +364,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         for (Polyline p:polylineList) {
             p.remove();
         }
-
+        polylineList.clear();
     }
 
     /**
@@ -401,25 +405,19 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         for (Marker m:mClusterManager.getMarkerCollection().getMarkers()) {
             if(station_to_reach!=null)
                 if( station_to_reach.equals(m.getTitle())){
+                    directionRequest = "http://www.yournavigation.org/api/1.0/gosmore.php?format=geojson";
+                    directionRequest+="&flat=";
+                    directionRequest+=myLatitude;
+                    directionRequest+="&flon=";
+                    directionRequest+=myLongitude;
+                    directionRequest+="&tlat=";
                     destination_position=myrend.getClusterItem(m).getPosition();
-                    origin+=String.valueOf(myLatitude);
-                    origin+=",";
-                    origin+=String.valueOf(myLongitude);
-                    destination+=String.valueOf(destination_position.latitude);
-                    destination+=",";
-                    destination+=String.valueOf(destination_position.longitude);
-                    directionRequest+=origin;
-                    directionRequest+="&";
-                    directionRequest+=destination;
-                    directionRequest+=AVOID;
-                    directionRequest+=MODE;
-                    directionRequest+=KEY;
-                    Log.i("station", station_to_reach);
-                    Log.i("station", station_to_reach+destination_position.latitude);
-                    Log.i("station", station_to_reach+destination_position.longitude);
+                    directionRequest+=destination_position.latitude;
+                    directionRequest+="&tlon=";
+                    directionRequest+=destination_position.longitude;
+                    directionRequest+="&fast=1&v=bicycle&layer=cn&geometry=1&distance=gc&instructions=1&lang=it";
                     doDirectionRequest(directionRequest);
                     Log.i("station",directionRequest);
-                    directionRequest = "https://maps.googleapis.com/maps/api/directions/json?";
                 }
         }
 
@@ -433,35 +431,19 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onResponse(JSONObject response) {
                 try {
-                     polylineList =new ArrayList<>();
-                    if(polylineList!=null){
-                        clearMap();
-                    }
+                    Log.i("station response ", response.toString());
+
+                    clearMap();
+                    List<List<LatLng>> list=new ArrayList<>();
+
                     lineOptions = new PolylineOptions();
-                    polylineList =new ArrayList<>();
-                    String status = response.getString("status");
-                    Log.i("status", status);
-                    //prendo i routes
-                    routes =response.getJSONArray("routes");
-                    //prendo l'unico leg disponibile del primo route
-                     leg=routes.getJSONObject(0).getJSONArray("legs").getJSONObject(0);
-                    //prendo l'array di steps del leg
-                      steps=leg.getJSONArray("steps");
-                      for(int i=0;i<steps.length();i++)
-                             {  polyline = (String)((JSONObject)((JSONObject)steps.get(i)).get("polyline")).get("points");
-                                 List<LatLng> list = decodePoly(polyline);
-                                 for(int k=0;k<list.size();k++)
-                                 {   lineOptions.add(list.get(k));
-                                     lineOptions.width(8);
-                                     lineOptions.color(Color.RED);
-                                     polylineList.add(mMap.addPolyline(lineOptions));
-                                //inserito da peppe
-                                     if(k!=list.size()-1)
-                                       k++;
-                                 }
-                                 clear.setEnabled(true);
-                             }
-                    Log.i("status", steps.get(0).toString());
+                    JSONArray coord = response.getJSONArray ("coordinates");
+                    DrawGeoJSON drawGeoJSON=new DrawGeoJSON(response);
+                    drawGeoJSON.execute();
+
+                    String cc[] = response.getJSONObject ("properties").toString().split("<br>");
+                    Log.i("direction size",String.valueOf(cc.length));
+                    clear.setEnabled(true);
                 } catch (JSONException e) {
                     e.printStackTrace();
                     Toast.makeText(getApplicationContext(),
@@ -484,8 +466,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         MySingleton.getInstance(this).addToRequestQueue(jsonObjReq);
     }
 
-     //decodifica polyline
-    private List<LatLng> decodePoly(String encoded) {
+
+   /** private List<LatLng> decodePoly(String encoded) {
 
         List<LatLng> poly = new ArrayList<LatLng>();
         int index = 0, len = encoded.length();
@@ -517,7 +499,145 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         return poly;
+    }       */
+
+
+
+         private class DrawGeoJSON extends AsyncTask<Void, Void, List<LatLng>> {
+            JSONObject response;
+
+        public DrawGeoJSON(JSONObject response)
+            {   this.response=response;
+            }
+              protected List<LatLng> doInBackground(Void... voids) {
+                   ArrayList<LatLng> points = new ArrayList<LatLng>();
+                  try {
+
+                      // Parse JSON
+                      JSONArray coord = response.getJSONArray ("coordinates");
+                          for(int i=0;i<coord.length();i++) {
+                              String c = String.valueOf(coord.get(i));
+                              c = c.substring(1);
+                              c = c.replaceAll("]", "");
+                              String cc[] = c.split(",");
+                              LatLng ll = new LatLng(Double.parseDouble(cc[1]), Double.parseDouble(cc[0]));
+                              ll = new LatLng(ll.latitude, ll.longitude);
+                              points.add(ll);
+                          }
+                  } catch (Exception e) {
+                      e.printStackTrace();
+                      Toast.makeText(getApplicationContext(),
+                              "Error: " + e.getMessage(),
+                              Toast.LENGTH_LONG).show();}
+                  return points;
+              }
+
+
+       @Override
+       protected void onPostExecute(List<LatLng> points) {
+           super.onPostExecute(points);
+
+           if (points.size() > 0) {
+               LatLng[] pointsArray = points.toArray(new LatLng[points.size()]);
+
+               // Draw Points on MapView
+             polylineList.add(mMap.addPolyline(new PolylineOptions()
+                       .add(pointsArray)
+                       .color(Color.parseColor("#3bb2d0"))
+                       .width(5)));
+
+               creaSegmenti(pointsArray);
+           }
+           Log.i("points size",String.valueOf(points.size()));
+       }
+
+
+         }
+
+    private void creaSegmenti(LatLng[] points) {
+        listasegmenti=new ArrayList<>();
+        for(int i=0;i<points.length-1;i++){
+            ArrayList<LatLng> segment=new ArrayList<>();
+            segment.add(points[i]);
+            segment.add(points[i+1]);
+            listasegmenti.add(segment);
+        }
     }
+
+    private boolean isBetweenSegment (LatLng P,ArrayList<LatLng>segmento){
+        LatLng A=segmento.get(0);
+        LatLng B=segmento.get(1);
+        LatLng AP= new LatLng(P.latitude-A.latitude,P.longitude-A.longitude);
+        LatLng AB= new LatLng(B.latitude-A.latitude,B.longitude-A.longitude);
+        LatLng BP= new LatLng(P.latitude-B.latitude,P.longitude-B.longitude);
+        LatLng BA= new LatLng(A.latitude-B.latitude,A.longitude-B.longitude);
+        if(ps(AP,AB)<0){
+            //sono a sinistra di A
+            return false;
+            }
+          else if (ps(BP,BA)<0)
+                {//sono a destra di B
+                    return false;
+                }
+            else
+                {/**sono tra A e B e mi salvo questo vettore e quello successivo,
+                    vado poi a calcolare l'angolo tra i due vettori e in questo modo ho l'angolo di quanto bisogna girare al prossimo vettore
+                    controllo anche la distanza tra la mia posizione e il vettore e se è maggiore di una certa soglia ricalcolo il percorso*/
+                return true;
+                }
+
+
+
+
+    }
+    //calcola prodotto scalare tra due vettori
+    private Double ps(LatLng x,LatLng y){
+        return x.latitude*y.latitude+x.longitude*y.longitude;
+    }
+
+    private Double modulo(LatLng AB){
+        return Math.sqrt((AB.latitude*AB.latitude)+(AB.longitude*AB.longitude));
+    }
+
+    //calcolo distanza della posizione da tutti i segmenti del mio percorso
+    private ArrayList<LatLng> getSegmento() {
+        LatLng myPosition=new LatLng(myLatitude,myLongitude);
+        int i=0;
+        double distmin = 0;
+        int index=0;
+        for (ArrayList<LatLng> s:listasegmenti) {
+            if(isBetweenSegment(myPosition,s)){
+                //calcolo distanza dal vettore
+                LatLng A=s.get(0);
+                LatLng B=s.get(1);
+                LatLng AP= new LatLng(myPosition.latitude-A.latitude,myPosition.longitude-A.longitude);
+                LatLng AB= new LatLng(B.latitude-A.latitude,B.longitude-A.longitude);
+                Double modAB=modulo(AB);
+                Double modAP=modulo(AP);
+                double cos=ps(AP,AB)/(modAB*modAP);
+                double latsum=cos*modAP;
+                double longsum=cos*modAB;
+                LatLng D= new LatLng(A.latitude+latsum,A.longitude+longsum);
+                LatLng DP= new LatLng(myPosition.latitude-D.latitude,myPosition.longitude-D.longitude);
+                double dist=modulo(DP);
+                if(i==0){
+                    distmin=dist;
+                    index=i;
+                }else {
+                    if (distmin > dist) {
+                        distmin = dist;
+                        index=i;
+                    }
+                }
+            }
+            i++;
+
+        }
+       return listasegmenti.get(index);
+
+    }
+
+
 
 
 
@@ -841,7 +961,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onLocationChanged(Location location) {
         mLastLocation = location;
         updateUI();
+        if(listasegmenti!=null) {
+            Log.i("prova D", getSegmento().toString());
+        }
     }
+
 
     private void updateUI() {
         myLatitude=mLastLocation.getLatitude();
