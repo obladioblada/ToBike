@@ -123,7 +123,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ClusterManager<mMarkerPostazione> mClusterManager;
     private MyClusterRenderer myrend;
     //code to start speech
-    private static final int REQUEST_CODE = 1234;
+    private static final int REQUEST_CODE_TO_SPEECH = 1234;
+    private static final int REQUEST_CODE_TO_SETTING=1992;
+
     /**
      * The desired interval for location updates. Inexact. Updates may be more or less frequent.
      */
@@ -151,6 +153,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private ArrayList<LatLng> positions;
     private int indexPositions;
+    private ConnectThread connectThread;
 
 
 
@@ -852,12 +855,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         Intent intent=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "find your station");
-        startActivityForResult(intent, REQUEST_CODE);
+        startActivityForResult(intent, REQUEST_CODE_TO_SPEECH);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE && resultCode == RESULT_OK){
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_TO_SPEECH && resultCode == RESULT_OK){
             ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             station_to_reach=matches.get(0);;
             autoCompleteTextView.setText(station_to_reach);
@@ -872,7 +876,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
             }
         }
-        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_CODE_TO_SETTING && resultCode == RESULT_OK){
+            connectThread=data.getParcelableExtra("connectThread");
+        }
+
+
     }
 
     /**
@@ -1037,31 +1046,30 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (listasegmenti != null) {
                 ArrayList<LatLng> currentSegment = listasegmenti.get(indexPositions);
                 ArrayList<LatLng> nextSegemnt = listasegmenti.get(indexPositions + 1);
-                LatLng currentVector = new LatLng(currentSegment.get(0).latitude - currentSegment.get(1).latitude, currentSegment.get(0).longitude - currentSegment.get(1).longitude);
+                LatLng currentVector = new LatLng(currentSegment.get(1).latitude - currentSegment.get(0).latitude, currentSegment.get(1).longitude - currentSegment.get(0).longitude);
                 LatLng nextVector = new LatLng(nextSegemnt.get(1).latitude - nextSegemnt.get(0).latitude, nextSegemnt.get(1).longitude - nextSegemnt.get(0).longitude);
                 //calcolo prodotto scalare tra i due segmenti per capire l'angolazione di svolta
                 coseno = ps(currentVector, nextVector) / (modulo(currentVector) * modulo(nextVector));
                 seno = Math.sqrt(1 - Math.pow(coseno, 2));
                 Log.i("svolta", " seno "+seno+" "+" coseno  "+coseno);
-              if (seno > 0) {
+              if (seno > 0 ) {
                     //svolto a qualsiasi destra
-                    if(seno<0.1)
+                    if(seno<0.2)
                       Log.i("svolta", "vai dritto");
-                    if(seno>0.1&&seno<0.5)
-                        Log.i("svolta", "svolta leggermente a destra");
+                    if(seno>0.2&&seno<0.5)
+                        Log.i("svolta", "tra " + disttoDirection+" m svolta leggermente a sinistra");
                     if(seno>0.5)
-                        Log.i("svolta", "svolta  a destra");
+                        Log.i("svolta", "tra "+disttoDirection+" m svolta a sinistra");
 
                 }
-                if (seno < 0 ) {
+                if (seno < 0) {
                     //svolto a qualsiasi sinistra
-                    if(seno>-0.1)
+                    if(seno>-0.2)
                     Log.i("svolta", "vai dritto");
-                    if(seno>-0.5&&seno<-0.1)
-                        Log.i("svolta", "svolta leggermente a sinistra");
+                    if(seno>-0.5&&seno<-0.2)
+                        Log.i("svolta", "tra "+disttoDirection+" m svolta leggermente a destra");
                     if(seno<-0.5)
-                        Log.i("svolta", "svolta  a sinistra");
-
+                        Log.i("svolta", "tra" +disttoDirection+"m svolta  a destra");
                 }
 
 
@@ -1157,7 +1165,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             //impostazioni
             case 2:
                 Intent setting=new Intent(this,SettingActivity.class);
-                startActivity(setting);
+                startActivityForResult(setting,REQUEST_CODE_TO_SETTING);
                 break;
             //chi siamo
             case 3:
