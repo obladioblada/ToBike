@@ -77,4 +77,13 @@
                 android:layout_weight="0.1"
                 android:padding="4dp"/>
     </LinearLayout>
+
+    <ListView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/listaSegmenti">
+    </ListView>
+
+
+
 </LinearLayout>

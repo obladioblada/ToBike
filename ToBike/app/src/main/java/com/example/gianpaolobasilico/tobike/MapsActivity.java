@@ -3,7 +3,6 @@ package com.example.gianpaolobasilico.tobike;
 
 //do NOT delete this two lines, is where I take the sh*t out of the markers! :D
 // https://developers.google.com/maps/documentation/android-api/utility/marker-clustering?hl=en
-
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -42,7 +41,6 @@ import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -68,11 +66,9 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterManager;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -116,10 +112,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private  PolylineOptions lineOptions ;
     private List<Polyline> polylineList;
     private List<ArrayList<LatLng>> listasegmenti;
-
-
+    private LatLng lastD;
+    private ListView listaviewsegmenti;
+    ArrayAdapter<String> segmentiAdapter;
     String stationRequest = "http://api.citybik.es/to-bike.json";
     String directionRequest = "https://maps.googleapis.com/maps/api/directions/json?";
+    double disttoDirection;
 
     // Declare a variable for the cluster manager.
     private ClusterManager<mMarkerPostazione> mClusterManager;
@@ -129,7 +127,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     /**
      * The desired interval for location updates. Inexact. Updates may be more or less frequent.
      */
-    public static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
+    public static final long UPDATE_INTERVAL_IN_MILLISECONDS = 1000;
     /**
      * The fastest rate for active location updates. Exact. Updates will never be more frequent
      * than this value.
@@ -151,6 +149,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final String MODE="&mode=walking";
     private static final String AVOID="&avoid=highways";
 
+    private ArrayList<LatLng> positions;
+    private int indexPositions;
 
 
 
@@ -159,6 +159,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.i("lifecycle","oncreate");
+        positions=new ArrayList<>();
+        positions.add(new LatLng(45.030858, 7.655200));
+        positions.add(new LatLng(45.030858, 7.655200));
+        indexPositions=0;
         setContentView(R.layout.activity_maps);
         is_ready=false;
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -190,6 +194,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         numbicilibere = (TextView)findViewById(R.id.numbicilibere);
         numbicioccupate = (TextView)findViewById(R.id.numbicioccupate);
         mode=(Switch)findViewById(R.id.switchMode);
+        listaviewsegmenti=(ListView)findViewById(R.id.listaSegmenti);
+        segmentiAdapter=new ArrayAdapter<String>(this,R.layout.segmento,R.id.segmentotextView);
+        listaviewsegmenti.setAdapter(segmentiAdapter);
         /**
          * false=available station mode
          * true= available bike mode
@@ -432,10 +439,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onResponse(JSONObject response) {
                 try {
                     Log.i("station response ", response.toString());
-
                     clearMap();
                     List<List<LatLng>> list=new ArrayList<>();
-
                     lineOptions = new PolylineOptions();
                     JSONArray coord = response.getJSONArray ("coordinates");
                     DrawGeoJSON drawGeoJSON=new DrawGeoJSON(response);
@@ -547,12 +552,21 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                        .width(5)));
 
                creaSegmenti(pointsArray);
+
            }
+           clearmarkermap();
            Log.i("points size",String.valueOf(points.size()));
        }
 
 
          }
+
+    private void clearmarkermap(){
+        mClusterManager.clearItems();
+       /* for (Marker m:mClusterManager.getMarkerCollection().getMarkers()) {
+            m.remove();
+        } */
+    }
 
     private void creaSegmenti(LatLng[] points) {
         listasegmenti=new ArrayList<>();
@@ -571,6 +585,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLng AB= new LatLng(B.latitude-A.latitude,B.longitude-A.longitude);
         LatLng BP= new LatLng(P.latitude-B.latitude,P.longitude-B.longitude);
         LatLng BA= new LatLng(A.latitude-B.latitude,A.longitude-B.longitude);
+
         if(ps(AP,AB)<0){
             //sono a sinistra di A
             return false;
@@ -580,9 +595,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     return false;
                 }
             else
-                {/**sono tra A e B e mi salvo questo vettore e quello successivo,
-                    vado poi a calcolare l'angolo tra i due vettori e in questo modo ho l'angolo di quanto bisogna girare al prossimo vettore
-                    controllo anche la distanza tra la mia posizione e il vettore e se è maggiore di una certa soglia ricalcolo il percorso*/
+                {//sono in mezzo tra A e B
+
                 return true;
                 }
 
@@ -596,15 +610,27 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private Double modulo(LatLng AB){
-        return Math.sqrt((AB.latitude*AB.latitude)+(AB.longitude*AB.longitude));
+        return Math.sqrt(  (Math.pow(AB.latitude,2)) + (Math.pow(AB.longitude,2)) ) ;
     }
 
     //calcolo distanza della posizione da tutti i segmenti del mio percorso
-    private ArrayList<LatLng> getSegmento() {
+    private int getSegmento() {
         LatLng myPosition=new LatLng(myLatitude,myLongitude);
+        double modAB;
+        double modAP;
+        double cosAlfa;
+        double modAD;
+        double cosBeta;
+        double latD;
+        double sinBeta;
+        double longD;
+        LatLng proiezioneSegmento=null;
+        LatLng proiezioneSegmentoPiuVicino=null;
         int i=0;
-        double distmin = 0;
+        double distmin=1000000000;
+        double dist=0;
         int index=0;
+
         for (ArrayList<LatLng> s:listasegmenti) {
             if(isBetweenSegment(myPosition,s)){
                 //calcolo distanza dal vettore
@@ -612,29 +638,62 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 LatLng B=s.get(1);
                 LatLng AP= new LatLng(myPosition.latitude-A.latitude,myPosition.longitude-A.longitude);
                 LatLng AB= new LatLng(B.latitude-A.latitude,B.longitude-A.longitude);
-                Double modAB=modulo(AB);
-                Double modAP=modulo(AP);
-                double cos=ps(AP,AB)/(modAB*modAP);
-                double latsum=cos*modAP;
-                double longsum=cos*modAB;
-                LatLng D= new LatLng(A.latitude+latsum,A.longitude+longsum);
-                LatLng DP= new LatLng(myPosition.latitude-D.latitude,myPosition.longitude-D.longitude);
-                double dist=modulo(DP);
-                if(i==0){
-                    distmin=dist;
-                    index=i;
-                }else {
-                    if (distmin > dist) {
+                 modAB=modulo(AB);
+                 modAP=modulo(AP);
+                 cosAlfa=ps(AP,AB)/(modAB*modAP);
+                 modAD=modAP*cosAlfa;
+                 cosBeta=ps(AB,new LatLng(1,0))/modAB;
+                 latD=A.latitude+(modAD*cosBeta);
+                 sinBeta=Math.abs(Math.sqrt(1-Math.pow(cosBeta,2)));
+                 longD=A.longitude+(modAD*sinBeta);
+                 proiezioneSegmento= new LatLng(latD,longD);
+                //vettore DP
+                 LatLng DP= new LatLng(myPosition.latitude-proiezioneSegmento.latitude,myPosition.longitude-proiezioneSegmento.longitude);
+                 Log.i("D lat",String.valueOf(latD));
+                 Log.i("D long",String.valueOf(longD));
+                 dist=calcoloDistanza(myPosition,proiezioneSegmento);
+                //calcolo distanza con formula
+                //proiezioneSegmento B, myPosition A
+                if (dist<distmin && dist<50) {
+                        proiezioneSegmentoPiuVicino=new LatLng(proiezioneSegmento.latitude,proiezioneSegmento.longitude);
                         distmin = dist;
                         index=i;
-                    }
+                        Log.i("distanza",String.valueOf(dist));
+                        MarkerOptions m3=new MarkerOptions();
+                        m3.position(proiezioneSegmentoPiuVicino);
+                        mMap.addMarker(m3);
+                    //calcolare distanza dal posizione alla fine del segmento
+                       disttoDirection=calcoloDistanza(proiezioneSegmentoPiuVicino,B);
                 }
+
+
             }
+
+
             i++;
-
         }
-       return listasegmenti.get(index);
+        Log.i("distanzafinale",String.valueOf(distmin));
+        segmentiAdapter.add(String.valueOf(index)+"  "+String.valueOf(distmin));
+        listaviewsegmenti.setAdapter(segmentiAdapter);
+        MarkerOptions mo=new MarkerOptions();
+        mo.position(listasegmenti.get(index).get(0));
+        mMap.addMarker(mo);
+        MarkerOptions m1=new MarkerOptions();
+        m1.position(listasegmenti.get(index).get(1));
+        mMap.addMarker(m1);
+        return index;
+    }
 
+
+    private  double calcoloDistanza(LatLng A,LatLng B){
+        //calcolo distanza in metri con formula
+        // p1 = (minlon, minlat) //longitudine e latitudine in radianti
+        //  p2 = (maxlon, maxlat) //longitudine e latitudine in radianti
+        // dist = arccos( sin(minlat) * sin(maxlat) + cos(minlat) * cos(maxlat) * cos(maxlon – minlon) ) * 6371*1000
+        double distanza;
+        double R=6371;
+        distanza=R*((Math.acos(Math.sin(Math.toRadians(B.latitude))*Math.sin(Math.toRadians(A.latitude))+Math.cos(Math.toRadians(B.latitude))*Math.cos(Math.toRadians(A.latitude))*Math.cos(Math.toRadians(A.longitude)-Math.toRadians(B.longitude)))))*1000;
+        return distanza;
     }
 
 
@@ -961,9 +1020,55 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onLocationChanged(Location location) {
         mLastLocation = location;
         updateUI();
+        getDirection();
         if(listasegmenti!=null) {
-            Log.i("prova D", getSegmento().toString());
+            indexPositions=getSegmento();
+            Log.i("prova D", listasegmenti.get(indexPositions).toString() );
         }
+    }
+
+    private void getDirection() {
+        double coseno;
+        double seno;
+        if(disttoDirection>100){
+            //continua drittto
+        }else {
+            //dato il segmento corrente ed il successivo mi calcolo la direzione  di svolta
+            if (listasegmenti != null) {
+                ArrayList<LatLng> currentSegment = listasegmenti.get(indexPositions);
+                ArrayList<LatLng> nextSegemnt = listasegmenti.get(indexPositions + 1);
+                LatLng currentVector = new LatLng(currentSegment.get(0).latitude - currentSegment.get(1).latitude, currentSegment.get(0).longitude - currentSegment.get(1).longitude);
+                LatLng nextVector = new LatLng(nextSegemnt.get(1).latitude - nextSegemnt.get(0).latitude, nextSegemnt.get(1).longitude - nextSegemnt.get(0).longitude);
+                //calcolo prodotto scalare tra i due segmenti per capire l'angolazione di svolta
+                coseno = ps(currentVector, nextVector) / (modulo(currentVector) * modulo(nextVector));
+                seno = Math.sqrt(1 - Math.pow(coseno, 2));
+                Log.i("svolta", " seno "+seno+" "+" coseno  "+coseno);
+              if (seno > 0) {
+                    //svolto a qualsiasi destra
+                    if(seno<0.1)
+                      Log.i("svolta", "vai dritto");
+                    if(seno>0.1&&seno<0.5)
+                        Log.i("svolta", "svolta leggermente a destra");
+                    if(seno>0.5)
+                        Log.i("svolta", "svolta  a destra");
+
+                }
+                if (seno < 0 ) {
+                    //svolto a qualsiasi sinistra
+                    if(seno>-0.1)
+                    Log.i("svolta", "vai dritto");
+                    if(seno>-0.5&&seno<-0.1)
+                        Log.i("svolta", "svolta leggermente a sinistra");
+                    if(seno<-0.5)
+                        Log.i("svolta", "svolta  a sinistra");
+
+                }
+
+
+            }
+        }
+
+
     }
 
 
@@ -972,7 +1077,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         myLongitude=mLastLocation.getLongitude();
         if(mPositionMarker!=null)
             mPositionMarker.setPosition(new LatLng(myLatitude, myLongitude));
-
     }
 
     @Override
