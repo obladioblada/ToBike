@@ -608,11 +608,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
     //calcola prodotto scalare tra due vettori
-    private Double ps(LatLng x,LatLng y){
+    private double ps(LatLng x,LatLng y){
         return x.latitude*y.latitude+x.longitude*y.longitude;
     }
 
-    private Double modulo(LatLng AB){
+    private double modulo(LatLng AB){
         return Math.sqrt(  (Math.pow(AB.latitude,2)) + (Math.pow(AB.longitude,2)) ) ;
     }
 
@@ -643,12 +643,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 LatLng AB= new LatLng(B.latitude-A.latitude,B.longitude-A.longitude);
                  modAB=modulo(AB);
                  modAP=modulo(AP);
-                 cosAlfa=ps(AP,AB)/(modAB*modAP);
+                 double prodMod=modAB*modAP;
+                 if (prodMod==0) prodMod=1;
+                 cosAlfa=ps(AP,AB)/prodMod;
                  modAD=modAP*cosAlfa;
-                 cosBeta=ps(AB,new LatLng(1,0))/modAB;
-                 latD=A.latitude+(modAD*cosBeta);
-                 sinBeta=Math.abs(Math.sqrt(1-Math.pow(cosBeta,2)));
-                 longD=A.longitude+(modAD*sinBeta);
+                 if (modAB==0) modAB=1;
+                 latD=A.latitude+AB.latitude*modAD/modAB;
+                 longD=A.longitude+AB.longitude*modAD/modAB;
+                 //cosBeta=ps(AB,new LatLng(1,0))/modAB;
+                 //latD=A.latitude+(modAD*cosBeta);
+                 //sinBeta=Math.abs(Math.sqrt(1-Math.pow(cosBeta,2)));
+                 //longD=A.longitude+(modAD*sinBeta);
                  proiezioneSegmento= new LatLng(latD,longD);
                 //vettore DP
                  LatLng DP= new LatLng(myPosition.latitude-proiezioneSegmento.latitude,myPosition.longitude-proiezioneSegmento.longitude);
