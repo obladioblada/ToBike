@@ -10,10 +10,10 @@ import com.google.maps.android.clustering.ClusterItem;
  */
 public class mMarkerPostazione implements ClusterItem {
 
-    private final LatLng mPosition;
-    private final int mBikes;
-    private final String mTitle;
-    private final int mFree;
+    private  LatLng mPosition;
+    private int mBikes;
+    private  String mTitle;
+    private  int mFree;
 
 
 
@@ -41,6 +41,14 @@ public class mMarkerPostazione implements ClusterItem {
 
     public int getmFree(){
         return mFree;
+    }
+
+    public void setmFree(int mFree) {
+        this.mFree = mFree;
+    }
+
+    public void setmBikes(int mBikes) {
+        this.mBikes = mBikes;
     }
 
     public MarkerOptions getMarker() {

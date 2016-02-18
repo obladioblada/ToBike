@@ -5,8 +5,8 @@ import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -29,7 +29,7 @@ public class SettingActivity extends AppCompatActivity {
     private Button cerca;
     BluetoothAdapter bluetoothAdapter;
     private static final int REQUEST_ENABLE_BT=4321;
-    private BroadcastReceiver broadcastReceiver;
+    private BroadcastReceiver mReceiver;
     ArrayList<BluetoothDevice> avaibleDevices;
     ConnectThread connectThread;
     Context context;
@@ -51,33 +51,40 @@ public class SettingActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 UUID devUUID=UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+                Log.i("Connessione attempt ","tryng to connect to"+avaibleDevices.get(position).getName());
                 connectThread =new ConnectThread(avaibleDevices.get(position),devUUID,bluetoothAdapter);
                 connectThread.run();
+                Log.i("Connessione attempt ","after run");
                 Intent result=new Intent();
-                result.putExtra("connectThread", (Parcelable) connectThread);
-                setResult(RESULT_OK,result);
+
+                //AMUND
+               // result.putExtra("ConnectThread", (Serializable) connectThread);
+              //  result.putExtra("devices",avaibleDevices.get(position));
+              //  result.putExtra("UUID",devUUID);
+              //  result.putExtra("btAdapter", bluetoothAdapter);
+                //result.putExtra("connectThread", (Parcelable) connectThread);
+              //  setResult(RESULT_OK,result);
             }
         });
         cerca=(Button)findViewById(R.id.connetiti);
         bluetoothAdapter=BluetoothAdapter.getDefaultAdapter();
-        broadcastReceiver=new BroadcastReceiver() {
+        mReceiver =new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 String action=intent.getAction();
-                Log.i("ric",intent.toString());
+                Log.i("Connessione ricerca",intent.toString());
                 if(BluetoothDevice.ACTION_FOUND.equals(action)){
                     BluetoothDevice bluetoothDevice=intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     arrayAdapter.add(bluetoothDevice.getName()+"\n"+bluetoothDevice.getAddress());
                     avaibleDevices.add(bluetoothDevice);
-                    Log.i("ric",bluetoothDevice.getName());
-
-
-
+                    Log.i("Connessione ricerca ","found "+bluetoothDevice.getName());
                 }
 
             }
         };
 
+        IntentFilter filter=new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        registerReceiver(mReceiver,filter);
 
         if(!bluetoothAdapter.isEnabled()){
             Intent enablebtIntent=new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -89,8 +96,8 @@ public class SettingActivity extends AppCompatActivity {
             public void onClick(View v) {
                 arrayAdapter=new ArrayAdapter<String>(context,R.layout.listdevices);
                 bluetoothAdapter.startDiscovery();
+                Log.i("Connessione","start discovery");
                 devices.setAdapter(arrayAdapter);
-                Log.i("inizio","inizio ricerca");
             }
         });
 

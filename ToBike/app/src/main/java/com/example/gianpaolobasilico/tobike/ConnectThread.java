@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.os.Process;
+import android.util.Log;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -34,6 +35,8 @@ public class ConnectThread implements Runnable{
         bluetoothAdapter.cancelDiscovery();
         try {
             bluetoothSocket.connect();
+            Log.i("Connessione attempt ","connected");
+
         } catch (IOException e) {
             e.printStackTrace();
             try {
@@ -60,6 +63,10 @@ public class ConnectThread implements Runnable{
         byte[] msgBuffer=msg.getBytes();
         ConnectedThread connectedThread=new ConnectedThread(bluetoothSocket);
         connectedThread.write(msgBuffer);
+    }
+
+    public boolean BtConnected(){
+        return isConnected;
     }
 
 

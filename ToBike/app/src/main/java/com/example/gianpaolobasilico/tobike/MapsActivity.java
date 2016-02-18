@@ -3,9 +3,15 @@ package com.example.gianpaolobasilico.tobike;
 
 //do NOT delete this two lines, is where I take the sh*t out of the markers! :D
 // https://developers.google.com/maps/documentation/android-api/utility/marker-clustering?hl=en
+
+import android.app.Dialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.location.Location;
@@ -35,12 +41,14 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.BaseAdapter;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -66,11 +74,14 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterManager;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback,GoogleApiClient.ConnectionCallbacks,GoogleApiClient.OnConnectionFailedListener,LocationListener{
 
@@ -114,10 +125,28 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private List<ArrayList<LatLng>> listasegmenti;
     private LatLng lastD;
     private ListView listaviewsegmenti;
-    ArrayAdapter<String> segmentiAdapter;
-    String stationRequest = "http://api.citybik.es/to-bike.json";
-    String directionRequest = "https://maps.googleapis.com/maps/api/directions/json?";
-    double disttoDirection;
+    private ArrayAdapter<String> segmentiAdapter;
+    private  String stationRequest = "http://api.citybik.es/to-bike.json";
+    private String directionRequest = "https://maps.googleapis.com/maps/api/directions/json?";
+    private double disttoDirection;
+    private int rateRequest;
+    private LatLng destination_position;
+    private long tempoTrascorso;
+    private long tStart;
+
+    /**___------------------------------------------*/
+    private ListView devices;
+    private ArrayAdapter arrayAdapter;
+    private Button cerca;
+    BluetoothAdapter bluetoothAdapter;
+    private static final int REQUEST_ENABLE_BT=4321;
+    private BroadcastReceiver mReceiver;
+    ArrayList<BluetoothDevice> avaibleDevices;
+    Context context;
+    private String[] listtextdev;
+    private int iDev=0;
+
+    /**------------------------------------------*/
 
     // Declare a variable for the cluster manager.
     private ClusterManager<mMarkerPostazione> mClusterManager;
@@ -162,6 +191,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.i("lifecycle","oncreate");
+        bluetoothAdapter=BluetoothAdapter.getDefaultAdapter();
         positions=new ArrayList<>();
         positions.add(new LatLng(45.030858, 7.655200));
         positions.add(new LatLng(45.030858, 7.655200));
@@ -190,7 +220,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mPositionMarkerOption.icon(BitmapDescriptorFactory.fromResource(R.drawable.ncflat));
         mPositionMarkerOption.anchor(0.5f, 0.5f);
         mPositionMarkerOption.flat(true);
-
+        devices=(ListView)findViewById(R.id.listaDevices);
         //handling slidingUp panel
         slidingUpPanelLayout=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
         fermata = (TextView)findViewById(R.id.fermata);
@@ -200,6 +230,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         listaviewsegmenti=(ListView)findViewById(R.id.listaSegmenti);
         segmentiAdapter=new ArrayAdapter<String>(this,R.layout.segmento,R.id.segmentotextView);
         listaviewsegmenti.setAdapter(segmentiAdapter);
+        arrayAdapter=new ArrayAdapter(this,R.layout.listdevices);
+
         /**
          * false=available station mode
          * true= available bike mode
@@ -248,6 +280,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 }
         });
+         // 5 minuti 300000
+        rateRequest=300000;
 
         /**
          * gestione floating button relativo alla navigazione
@@ -288,8 +322,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         /**
          * creazione della lista da inserire nella navigation drawer
          */
-        navigation_items= new String[]{getString(R.string.login),getString(R.string.preferred),getString(R.string.setting), getString(R.string.about)};
-        icon_list = new int[]{R.drawable.login,R.drawable.ic_add_location_black_24dp,R.drawable.ic_settings_black_24dp, R.drawable.ic_person_black_24dp};
+        navigation_items= new String[]{getString(R.string.connecting),getString(R.string.login),getString(R.string.preferred),getString(R.string.setting), getString(R.string.about)};
+        icon_list = new int[]{R.drawable.ic_bluetooth_black_24dp,R.drawable.login,R.drawable.ic_add_location_black_24dp,R.drawable.ic_settings_black_24dp, R.drawable.ic_person_black_24dp};
         MAdapterList mAdapter=new MAdapterList(this, navigation_items,icon_list);
         mDrawerList.setAdapter(mAdapter);
         mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
@@ -408,7 +442,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
      costruzione stringa richiesta http per la direzione
      */
     private void findRoute() {
-        LatLng destination_position;
         String origin="origin=";
         String destination="destination=";
 
@@ -431,6 +464,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
         }
 
+        tStart = System.currentTimeMillis();
     }
     /**
      metodo per la gestione del percorso da-a
@@ -511,7 +545,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
-         private class DrawGeoJSON extends AsyncTask<Void, Void, List<LatLng>> {
+    private class DrawGeoJSON extends AsyncTask<Void, Void, List<LatLng>> {
             JSONObject response;
 
         public DrawGeoJSON(JSONObject response)
@@ -612,6 +646,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         return x.latitude*y.latitude+x.longitude*y.longitude;
     }
 
+    private double pv(LatLng U,LatLng V){return U.latitude*V.longitude-U.longitude*V.latitude;}
+
     private double modulo(LatLng AB){
         return Math.sqrt(  (Math.pow(AB.latitude,2)) + (Math.pow(AB.longitude,2)) ) ;
     }
@@ -692,7 +728,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         return index;
     }
 
-
     private  double calcoloDistanza(LatLng A,LatLng B){
         //calcolo distanza in metri con formula
         // p1 = (minlon, minlat) //longitudine e latitudine in radianti
@@ -703,10 +738,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         distanza=R*((Math.acos(Math.sin(Math.toRadians(B.latitude))*Math.sin(Math.toRadians(A.latitude))+Math.cos(Math.toRadians(B.latitude))*Math.cos(Math.toRadians(A.latitude))*Math.cos(Math.toRadians(A.longitude)-Math.toRadians(B.longitude)))))*1000;
         return distanza;
     }
-
-
-
-
 
     /**
      metodo per gestire colore markers
@@ -883,6 +914,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         if (requestCode == REQUEST_CODE_TO_SETTING && resultCode == RESULT_OK){
+            Intent returnedObjFromConnectThread = (Intent) data.getSerializableExtra("ConnectThread");
             connectThread=data.getParcelableExtra("connectThread");
         }
 
@@ -916,6 +948,78 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
      }
 
+   public void update(){
+       long tEnd = System.currentTimeMillis();
+       long tDelta = tEnd - tStart;
+       if(tDelta>=rateRequest)
+           stationRequestUpdate();
+       Log.i("update","update stazioni");
+   }
+
+    public void stationRequestUpdate(){
+       tStart= System.currentTimeMillis();;
+        JsonArrayRequest req = new JsonArrayRequest(stationRequest,
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        try {
+                            // Parsing json array response
+                            // loop through each json object
+                            jsonResponse = "";
+                            for (int i = 0; i < response.length(); i++) {
+
+                                JSONObject station = (JSONObject) response
+                                        .get(i);
+
+                                String id = station.getString("id");
+                                String name = station.getString("name");
+                                suggestions.add(name);
+                                double lat = station.getDouble("lat");
+                                lat = lat / 1e6;
+                                double lng = station.getDouble("lng");
+                                lng = lng / 1e6;
+                                int bikes = station.getInt("bikes");
+                                int free = station.getInt("free");
+                                String timestamp = station.getString("timestamp");
+                                //aggiorno il numero di bici e postazioni libere
+                                for (Marker m : mClusterManager.getMarkerCollection().getMarkers()) {
+                                    if(myrend.getClusterItem(m).getmTitle().equals(name)){
+                                          myrend.getClusterItem(m).setmBikes(bikes);
+                                          myrend.getClusterItem(m).setmFree(free);
+                                    //controllo se la posizione di arrivo è quale  nel caso se le bici sono zero ricalcolo percorso
+                                        if(name.equals(station_to_reach)&&myrend.getClusterItem(m).getmFree()==0){
+                                            changeStation();
+                                        }
+
+
+
+                                         }
+                                }
+                            }
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(getApplicationContext(),
+                                    "Error: " + e.getMessage(),
+                                    Toast.LENGTH_LONG).show();
+                        }
+
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Toast.makeText(getApplicationContext(),
+                        error.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        req.setRetryPolicy(new DefaultRetryPolicy(20000,1,1.0f));
+        MySingleton.getInstance(this).addToRequestQueue(req);
+
+
+    }
+
     public void doStationRequest(){
         JsonArrayRequest req = new JsonArrayRequest(stationRequest,
                 new Response.Listener<JSONArray>() {
@@ -927,19 +1031,19 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                             jsonResponse = "";
                             for (int i = 0; i < response.length(); i++) {
 
-                                JSONObject person = (JSONObject) response
+                                JSONObject station = (JSONObject) response
                                         .get(i);
 
-                                String id = person.getString("id");
-                                String name = person.getString("name");
+                                String id = station.getString("id");
+                                String name = station.getString("name");
                                 suggestions.add(name);
-                                double lat = person.getDouble("lat");
+                                double lat = station.getDouble("lat");
                                 lat=lat/1e6;
-                                double lng = person.getDouble("lng");
+                                double lng = station.getDouble("lng");
                                 lng=lng/1e6;
-                                int bikes = person.getInt("bikes");
-                                int free = person.getInt("free");
-                                String timestamp=person.getString("timestamp");
+                                int bikes = station.getInt("bikes");
+                                int free = station.getInt("free");
+                                String timestamp=station.getString("timestamp");
 
                                 jsonResponse += "id: " + id + "\n\n";
                                 jsonResponse += "name: " + name + "\n\n";
@@ -948,7 +1052,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 jsonResponse += "bikes: " + bikes + "\n\n\n";
                                 jsonResponse += "free: " + free + "\n\n";
                                 jsonResponse += "timestamp: " + timestamp + "\n\n";
-
                                 mMarkerPostazione am= new mMarkerPostazione(lat,lng,name,bikes,free);
                                 mClusterManager.addItem(am);
                             }
@@ -974,6 +1077,25 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         MySingleton.getInstance(this).addToRequestQueue(req);
     }
 
+    private void changeStation() {
+        //trovate la stazione piu vicina a quella a cui dovrei andare e ricalcolare percorso
+        double near_station=100000000;
+        LatLng near_Statio_position;
+        String near_Station_name="";
+        double d;
+
+        for (Marker m : mClusterManager.getMarkerCollection().getMarkers()){
+            d=calcoloDistanza(destination_position,m.getPosition());
+            if(d<near_station && myrend.getClusterItem(m).getmFree()>0)
+              {   near_Statio_position=m.getPosition();
+                  near_Station_name=myrend.getClusterItem(m).getmTitle();
+                  near_station=d;}
+        }
+        station_to_reach=near_Station_name;
+        findRoute();
+
+
+    }
 
     public GoogleMap getMap() {
         return mMap;}
@@ -1039,45 +1161,115 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             indexPositions=getSegmento();
             Log.i("prova D", listasegmenti.get(indexPositions).toString() );
         }
+        update();
     }
 
     private void getDirection() {
+//Da inviare ad Arduino
+//0 dx
+//1 sx
+//2 dritto
+//3 arrivo
         double coseno;
         double seno;
+        double angolo;
         if(disttoDirection>100){
             //continua drittto
         }else {
             //dato il segmento corrente ed il successivo mi calcolo la direzione  di svolta
             if (listasegmenti != null) {
                 ArrayList<LatLng> currentSegment = listasegmenti.get(indexPositions);
-                ArrayList<LatLng> nextSegemnt = listasegmenti.get(indexPositions + 1);
-                LatLng currentVector = new LatLng(currentSegment.get(1).latitude - currentSegment.get(0).latitude, currentSegment.get(1).longitude - currentSegment.get(0).longitude);
-                LatLng nextVector = new LatLng(nextSegemnt.get(1).latitude - nextSegemnt.get(0).latitude, nextSegemnt.get(1).longitude - nextSegemnt.get(0).longitude);
-                //calcolo prodotto scalare tra i due segmenti per capire l'angolazione di svolta
-                coseno = ps(currentVector, nextVector) / (modulo(currentVector) * modulo(nextVector));
-                seno = Math.sqrt(1 - Math.pow(coseno, 2));
-                Log.i("svolta", " seno "+seno+" "+" coseno  "+coseno);
-              if (seno > 0 ) {
-                    //svolto a qualsiasi destra
-                    if(seno<0.2)
-                      Log.i("svolta", "vai dritto");
-                    if(seno>0.2&&seno<0.5)
-                        Log.i("svolta", "tra " + disttoDirection+" m svolta leggermente a sinistra");
-                    if(seno>0.5)
-                        Log.i("svolta", "tra "+disttoDirection+" m svolta a sinistra");
+                if(indexPositions==listasegmenti.size()-1){
+                    Log.i("svolta","stai arrivando, mancano solo "+disttoDirection+"m");
+                    if (connectThread.BtConnected()) {
+                        connectThread.sendData("3");
+                    }
+                }else {
+                    ArrayList<LatLng> nextSegemnt = listasegmenti.get(indexPositions + 1);
+                    LatLng currentVector = new LatLng(currentSegment.get(0).latitude - currentSegment.get(1).latitude, currentSegment.get(0).longitude - currentSegment.get(1).longitude);
+                    LatLng nextVector = new LatLng(nextSegemnt.get(1).latitude - nextSegemnt.get(0).latitude, nextSegemnt.get(1).longitude - nextSegemnt.get(0).longitude);
+                    //calcolo prodotto scalare tra i due segmenti per capire l'angolazione di svolta
+                    double promod=modulo(currentVector) * modulo(nextVector);
+                    if(promod==0)  promod=1;
+                     coseno = ps(currentVector, nextVector) /promod;
+                    if(promod==0) promod=1;
+                     seno = pv(nextVector,currentVector)/promod;
+                    Log.i("svolta", " seno " + seno + " " + " coseno  " + coseno);
+                    if (seno > 0 && coseno<0) {
+                        //svolto a qualsiasi destra
+                        if (seno < 0.2) {
+                            if(connectThread!=null){
+                               if (connectThread.BtConnected()) {
+                                     connectThread.sendData("2");
+                                 }
+                            }
+                            Log.i("svolta", "vai dritto");
+                    }
+                        if (seno > 0.2 && seno < 0.5) {
+                           if( connectThread!=null){
+                            if (connectThread.BtConnected()) {
+                                 connectThread.sendData("0");
+                            }
+                           }
+                            Log.i("svolta", "tra " + disttoDirection + " m svolta leggermente a destra");
+                        }
+                        if (seno > 0.5) {
+                            if(connectThread!=null){
+                                if (connectThread.BtConnected()) {
+                                    connectThread.sendData("0");
+                                }
+                            }
+                            Log.i("svolta", "tra " + disttoDirection + " m svolta a destra");
+                        }
+                    }
+                    if(seno>0 && coseno > 0)
+                    {   if(connectThread!=null){
+                            if (connectThread.BtConnected()&&connectThread!=null) {
+                             connectThread.sendData("0");
+                            }
+                         }
+                         Log.i("svolta", "tra " + disttoDirection + " m svolta a destra");
+
+                    }
+                    if (seno < 0 && coseno<0) {
+                        //svolto a qualsiasi sinistra
+                        if (seno > -0.2) {
+                                if(connectThread!=null){
+                                if (connectThread.BtConnected()) {
+                                    connectThread.sendData("2");
+                                }
+                            }
+                            Log.i("svolta", "vai dritto");
+                        }
+                        if (seno > -0.5 && seno < -0.2) {
+                            if(connectThread!=null){
+                                if (connectThread.BtConnected()) {
+                                    connectThread.sendData("1");
+                                 }
+                            }
+                            Log.i("svolta", "tra " + disttoDirection + " m svolta leggermente a sinistra");
+                        }
+                        if (seno < -0.5) {
+                            if(connectThread!=null){
+                                if (connectThread.BtConnected()) {
+                                    connectThread.sendData("1");
+                                }
+                            }
+                            Log.i("svolta", "tra" + disttoDirection + "m svolta  a sinistra");
+                        }
+                    }
+                    if(seno<0 && coseno>0){
+                            if(connectThread!=null){
+                                if (connectThread.BtConnected()) {
+                                    connectThread.sendData("1");
+                                }
+                            }
+                        Log.i("svolta", "tra" + disttoDirection + "m svolta  a sinistra");
+
+                    }
+
 
                 }
-                if (seno < 0) {
-                    //svolto a qualsiasi sinistra
-                    if(seno>-0.2)
-                    Log.i("svolta", "vai dritto");
-                    if(seno>-0.5&&seno<-0.2)
-                        Log.i("svolta", "tra "+disttoDirection+" m svolta leggermente a destra");
-                    if(seno<-0.5)
-                        Log.i("svolta", "tra" +disttoDirection+"m svolta  a destra");
-                }
-
-
             }
         }
 
@@ -1162,22 +1354,91 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void selectItemNavigation(int position) {
         switch (position){
-            //login
-            case 0:Intent login=new Intent(this,LoginActivity.class);
-                   startActivity(login);break;
+           
+            case 0:ConnesioneBluetooth();
+
+                break;
+                //login
+            case 1:Intent login=new Intent(this,LoginActivity.class);
+                  startActivity(login);break;
             //preferiti
-            case 1:break;
+            case 2:break;
+
             //impostazioni
-            case 2:
-                Intent setting=new Intent(this,SettingActivity.class);
+            case 3: Intent setting=new Intent(this,SettingActivity.class);
                 startActivityForResult(setting,REQUEST_CODE_TO_SETTING);
                 break;
             //chi siamo
-            case 3:
-                Intent about=new Intent(this,AboutActivity.class);
+            case  4: Intent about=new Intent(this,AboutActivity.class);
                 startActivity(about);break;
         }
     }
 
+    private void ConnesioneBluetooth() {
+        mDrawerLayout.closeDrawers();
+        final ArrayList<String> nameDevice=new ArrayList<>();
+        if(!bluetoothAdapter.isEnabled())
+        {   Intent enablebtIntent=new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enablebtIntent,REQUEST_ENABLE_BT);
+        }
+          bluetoothAdapter.startDiscovery();
+          avaibleDevices=new ArrayList<>();
+          mReceiver=new BroadcastReceiver() {
+              @Override
+              public void onReceive(Context context, Intent intent) {
+                  String action=intent.getAction();
+                  if(BluetoothDevice.ACTION_FOUND.equals(action)){
+                      BluetoothDevice bluetoothDevice=intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                      avaibleDevices.add(bluetoothDevice);
+                      nameDevice.add(bluetoothDevice.getName()+"\n"+bluetoothDevice.getAddress());
+                      arrayAdapter.clear();
+                     // arrayAdapter.add(bluetoothDevice.getName()+"\n"+bluetoothDevice.getAddress());
+                      arrayAdapter.addAll(nameDevice);
+                      Log.i("Connessione ricerca ","found "+bluetoothDevice.getName());
+                  }
+              }
+          };
+        IntentFilter filter=new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        registerReceiver(mReceiver,filter);
+        Dialog d=onCreateDialog();
+        d.show();
+
+    }
+
+
+    public Dialog onCreateDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Device List");
+        builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Log.i("onclick dialog","cliccato-> "+String.valueOf(which));
+                UUID devUUID=UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+                Log.i("Connessione attempt ","tryng to connect to"+avaibleDevices.get(which).getName());
+                connectThread =new ConnectThread(avaibleDevices.get(which),devUUID,bluetoothAdapter);
+                connectThread.run();
+                Log.i("Connessione attempt ","after run");
+            }
+        });
+        return builder.create();
+    }
+
+
+
 
 }
+
+
+/**
+ *
+ * ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.select_dialog_multichoice);
+ adapter.add("whatever data1");
+ adapter.add("whatever data2");
+ adapter.add("whatever data3");
+ AlertDialog.Builder builder = new AlertDialog.Builder(this);
+ builder.setTitle("whatever title");
+ builder.setAdapter(adapter, new DialogInterface.OnClickListener() {
+ public void onClick(DialogInterface dialog, int item) {
+
+ }
+ });*/
