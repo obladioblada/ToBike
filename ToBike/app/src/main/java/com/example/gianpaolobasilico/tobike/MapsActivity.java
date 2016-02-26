@@ -190,6 +190,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Intent i=new Intent(this,SplashActivity.class);
+        startActivity(i);
         Log.i("lifecycle","oncreate");
         bluetoothAdapter=BluetoothAdapter.getDefaultAdapter();
         positions=new ArrayList<>();
@@ -545,58 +547,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
-    private class DrawGeoJSON extends AsyncTask<Void, Void, List<LatLng>> {
-            JSONObject response;
-
-        public DrawGeoJSON(JSONObject response)
-            {   this.response=response;
-            }
-              protected List<LatLng> doInBackground(Void... voids) {
-                   ArrayList<LatLng> points = new ArrayList<LatLng>();
-                  try {
-
-                      // Parse JSON
-                      JSONArray coord = response.getJSONArray ("coordinates");
-                          for(int i=0;i<coord.length();i++) {
-                              String c = String.valueOf(coord.get(i));
-                              c = c.substring(1);
-                              c = c.replaceAll("]", "");
-                              String cc[] = c.split(",");
-                              LatLng ll = new LatLng(Double.parseDouble(cc[1]), Double.parseDouble(cc[0]));
-                              ll = new LatLng(ll.latitude, ll.longitude);
-                              points.add(ll);
-                          }
-                  } catch (Exception e) {
-                      e.printStackTrace();
-                      Toast.makeText(getApplicationContext(),
-                              "Error: " + e.getMessage(),
-                              Toast.LENGTH_LONG).show();}
-                  return points;
-              }
-
-
-       @Override
-       protected void onPostExecute(List<LatLng> points) {
-           super.onPostExecute(points);
-
-           if (points.size() > 0) {
-               LatLng[] pointsArray = points.toArray(new LatLng[points.size()]);
-
-               // Draw Points on MapView
-             polylineList.add(mMap.addPolyline(new PolylineOptions()
-                       .add(pointsArray)
-                       .color(Color.parseColor("#3bb2d0"))
-                       .width(5)));
-
-               creaSegmenti(pointsArray);
-
-           }
-           clearmarkermap();
-           Log.i("points size",String.valueOf(points.size()));
-       }
-
-
-         }
 
     private void clearmarkermap(){
         mClusterManager.clearItems();
@@ -932,7 +882,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(45.0704900,7.6868200),14));
         setUpClusterer();
         mMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
         doStationRequest();
@@ -1021,48 +970,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void doStationRequest(){
+        Log.i("richiesta stazioni","richiesta stazioni partita");
         JsonArrayRequest req = new JsonArrayRequest(stationRequest,
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray response) {
-                        try {
-                            // Parsing json array response
-                            // loop through each json object
-                            jsonResponse = "";
-                            for (int i = 0; i < response.length(); i++) {
-
-                                JSONObject station = (JSONObject) response
-                                        .get(i);
-
-                                String id = station.getString("id");
-                                String name = station.getString("name");
-                                suggestions.add(name);
-                                double lat = station.getDouble("lat");
-                                lat=lat/1e6;
-                                double lng = station.getDouble("lng");
-                                lng=lng/1e6;
-                                int bikes = station.getInt("bikes");
-                                int free = station.getInt("free");
-                                String timestamp=station.getString("timestamp");
-
-                                jsonResponse += "id: " + id + "\n\n";
-                                jsonResponse += "name: " + name + "\n\n";
-                                jsonResponse += "lat: " + lat + "\n\n";
-                                jsonResponse += "lng: " + lng + "\n\n";
-                                jsonResponse += "bikes: " + bikes + "\n\n\n";
-                                jsonResponse += "free: " + free + "\n\n";
-                                jsonResponse += "timestamp: " + timestamp + "\n\n";
-                                mMarkerPostazione am= new mMarkerPostazione(lat,lng,name,bikes,free);
-                                mClusterManager.addItem(am);
-                            }
-
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                            Toast.makeText(getApplicationContext(),
-                                    "Error: " + e.getMessage(),
-                                    Toast.LENGTH_LONG).show();
-                        }
-
+                        DrawStation drawStation=new DrawStation(response);
+                        drawStation.execute();
 
                     }
                 }, new Response.ErrorListener() {
@@ -1075,6 +989,126 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         req.setRetryPolicy(new DefaultRetryPolicy(20000,1,1.0f));
         MySingleton.getInstance(this).addToRequestQueue(req);
+    }
+
+
+
+    private class DrawStation extends AsyncTask<Void,Void,List<mMarkerPostazione>> {
+        JSONArray res;
+
+        public DrawStation(JSONArray res){
+            this.res=res;
+        }
+
+        protected List<mMarkerPostazione> doInBackground(Void... voids)  {
+            List<mMarkerPostazione> postazioni=new ArrayList();
+
+            try {
+                // Parsing json array response
+                // loop through each json object
+                jsonResponse = "";
+                for (int i = 0; i < res.length(); i++) {
+
+                    JSONObject station = (JSONObject) res
+                            .get(i);
+
+                    String id = station.getString("id");
+                    String name = station.getString("name");
+                    suggestions.add(name);
+                    double lat = station.getDouble("lat");
+                    lat=lat/1e6;
+                    double lng = station.getDouble("lng");
+                    lng=lng/1e6;
+                    int bikes = station.getInt("bikes");
+                    int free = station.getInt("free");
+                    String timestamp=station.getString("timestamp");
+
+                    jsonResponse += "id: " + id + "\n\n";
+                    jsonResponse += "name: " + name + "\n\n";
+                    jsonResponse += "lat: " + lat + "\n\n";
+                    jsonResponse += "lng: " + lng + "\n\n";
+                    jsonResponse += "bikes: " + bikes + "\n\n\n";
+                    jsonResponse += "free: " + free + "\n\n";
+                    jsonResponse += "timestamp: " + timestamp + "\n\n";
+                    mMarkerPostazione am= new mMarkerPostazione(lat,lng,name,bikes,free);
+                    postazioni.add(am);
+
+                }
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+                Toast.makeText(getApplicationContext(),
+                        "Error: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
+            }
+
+
+
+            return postazioni;
+        }
+
+
+
+        protected void onPostExecute(List<mMarkerPostazione> postazioni){
+            mClusterManager.addItems(postazioni);
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(45.0704900,7.6868200),14));
+
+        }
+    }
+
+
+
+    private class DrawGeoJSON extends AsyncTask<Void, Void, List<LatLng>> {
+        JSONObject response;
+
+        public DrawGeoJSON(JSONObject response)
+        {   this.response=response;
+        }
+        protected List<LatLng> doInBackground(Void... voids) {
+            ArrayList<LatLng> points = new ArrayList<LatLng>();
+            try {
+
+                // Parse JSON
+                JSONArray coord = response.getJSONArray ("coordinates");
+                for(int i=0;i<coord.length();i++) {
+                    String c = String.valueOf(coord.get(i));
+                    c = c.substring(1);
+                    c = c.replaceAll("]", "");
+                    String cc[] = c.split(",");
+                    LatLng ll = new LatLng(Double.parseDouble(cc[1]), Double.parseDouble(cc[0]));
+                    ll = new LatLng(ll.latitude, ll.longitude);
+                    points.add(ll);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(getApplicationContext(),
+                        "Error: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();}
+            return points;
+        }
+
+
+        @Override
+        protected void onPostExecute(List<LatLng> points) {
+            super.onPostExecute(points);
+
+            if (points.size() > 0) {
+                LatLng[] pointsArray = points.toArray(new LatLng[points.size()]);
+
+                // Draw Points on MapView
+                polylineList.add(mMap.addPolyline(new PolylineOptions()
+                        .add(pointsArray)
+                        .color(Color.parseColor("#3bb2d0"))
+                        .width(5)));
+
+                creaSegmenti(pointsArray);
+
+            }
+            clearmarkermap();
+            Log.i("points size",String.valueOf(points.size()));
+        }
+
+
     }
 
     private void changeStation() {
@@ -1420,6 +1454,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Log.i("Connessione attempt ","after run");
             }
         });
+
+       builder.setCustomTitle(LayoutInflater.from(this).inflate(R.layout.dialoglayout, null));
+
         return builder.create();
     }
 
