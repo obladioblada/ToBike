@@ -20,6 +20,7 @@ public class MyClusterRenderer extends DefaultClusterRenderer<mMarkerPostazione>
     }
 
     protected void onBeforeClusterItemRendered(mMarkerPostazione item, MarkerOptions markerOptions) {
+
         markerOptions.icon(item.getMarker().getIcon());
         markerOptions.title(item.getmTitle());
 

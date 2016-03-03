@@ -8,8 +8,9 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Handler handler = new Handler();
 
+
+        Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -17,6 +18,7 @@ public class SplashActivity extends AppCompatActivity {
                  finish();
             }
         },2000);
+
 
 
     }

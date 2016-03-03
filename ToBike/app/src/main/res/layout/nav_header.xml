@@ -4,16 +4,16 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="192dp"
-    android:padding="16dp"
     android:layout_gravity="bottom"
     android:background="?attr/colorPrimaryDark">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Header"
-        android:textColor="@android:color/white"
-        android:id="@+id/nrBici"
-/>
-
+    <ImageView
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     android:src="@drawable/tobike"
+        android:background="@color/white"
+        android:layout_gravity="center"
+        android:paddingTop="10dp"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"/>
 </LinearLayout>

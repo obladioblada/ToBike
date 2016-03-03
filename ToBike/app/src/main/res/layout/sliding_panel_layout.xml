@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -13,7 +14,8 @@
                   android:layout_height="64dp"
                   style="@style/ToBikeTheme"
                   android:background="@color/white"
-                  android:weightSum="1">
+                  android:weightSum="1"
+                  android:id="@+id/slider">
 
 
         <TextView
@@ -73,17 +75,39 @@
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:enabled="false"
-                android:gravity="center_vertical"
+                android:gravity="center_vertical|right"
                 android:layout_weight="0.1"
-                android:padding="4dp"/>
+                android:padding="4dp"
+                android:layout_gravity="right" />
+
+
     </LinearLayout>
 
-    <ListView
+    <View
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/listaSegmenti">
-    </ListView>
+        android:layout_height="1dp"
+        android:background="@color/colorPrimary"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        />
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:orientation="horizontal"
+        android:weightSum="1"
+        android:layout_gravity="center">
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/colorPrimary"
+        android:layout_gravity="top"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+
+        />
 
 
 </LinearLayout>
