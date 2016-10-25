@@ -36,7 +36,9 @@
                            android:layout_height="match_parent"
                            tools:context="com.example.gianpaolobasilico.tobike.MapsActivity">
 
-                 </fragment>
+
+
+                     </fragment>
                  <include
                            layout="@layout/toolbar" />
                  <include

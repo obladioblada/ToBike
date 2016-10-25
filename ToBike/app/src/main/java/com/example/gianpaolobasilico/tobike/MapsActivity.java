@@ -4,6 +4,7 @@ package com.example.gianpaolobasilico.tobike;
 //do NOT delete this two lines, is where I take the sh*t out of the markers! :D
 // https://developers.google.com/maps/documentation/android-api/utility/marker-clustering?hl=en
 
+import android.Manifest;
 import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -12,17 +13,21 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Parcelable;
+import android.provider.Settings;
 import android.speech.RecognizerIntent;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -38,6 +43,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
@@ -58,6 +64,9 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -68,6 +77,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -86,7 +96,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback,GoogleApiClient.ConnectionCallbacks,GoogleApiClient.OnConnectionFailedListener,LocationListener{
+import static com.google.android.gms.location.LocationServices.*;
+
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
     private GoogleMap mMap;
     private String jsonResponse;
@@ -122,12 +134,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private JSONArray routes;
     private JSONArray steps;
     private JSONObject leg;
-    private String polyline="";
-    private  PolylineOptions lineOptions ;
+    private String polyline = "";
+    private PolylineOptions lineOptions;
     private List<Polyline> polylineList;
     private List<ArrayList<LatLng>> listasegmenti;
     private LatLng lastD;
-    private  String stationRequest = "http://api.citybik.es/to-bike.json";
+    private String stationRequest = "http://api.citybik.es/to-bike.json";
     private String directionRequest = "https://maps.googleapis.com/maps/api/directions/json?";
     private double disttoDirection;
     private int rateRequest;
@@ -138,8 +150,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     List<mMarkerPostazione> postazioni;
     private boolean pathRequested;
     private LatLng mypositionSaved;
-
-
+    private Dialog dialogbo;
+    private Dialog splash;
+    private LocationManager mlocationmanager;
 
 
     //gestione invio dati
@@ -148,8 +161,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private int contatoreBtData;
 
 
-
-
+    private HandlerThread btDataThread;
 
 
     /**___------------------------------------------*/
@@ -157,12 +169,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ArrayAdapter arrayAdapter;
     private Button cerca;
     BluetoothAdapter bluetoothAdapter;
-    private static final int REQUEST_ENABLE_BT=4321;
+    private static final int REQUEST_ENABLE_BT = 4321;
     private BroadcastReceiver mReceiver;
     ArrayList<BluetoothDevice> avaibleDevices;
     Context context;
     private String[] listtextdev;
-    private int iDev=0;
+    private int iDev = 0;
     private boolean stationrequestDone;
 
     private boolean startnavigation;
@@ -175,7 +187,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MyClusterRenderer myrend;
     //code to start speech
     private static final int REQUEST_CODE_TO_SPEECH = 1234;
-    private static final int REQUEST_CODE_TO_SETTING=1992;
+    private static final int REQUEST_CODE_TO_SETTING = 1992;
 
     /**
      * The desired interval for location updates. Inexact. Updates may be more or less frequent.
@@ -197,61 +209,80 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     /**
      * Stringhe per illa richiesta della direzione
      */
-    private static final String KEY="&key=AIzaSyAbOWOtYsr1-uDMrC6eC4Ycy1XVEWP1P-g";
+    private static final String KEY = "&key=AIzaSyAbOWOtYsr1-uDMrC6eC4Ycy1XVEWP1P-g";
     //MODE : fare decidere all'utente se andare a piedi o in macchina(??)
-    private static final String MODE="&mode=walking";
-    private static final String AVOID="&avoid=highways";
+    private static final String MODE = "&mode=walking";
+    private static final String AVOID = "&avoid=highways";
     private int indexPositions;
     private ConnectThread connectThread;
-
-
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        startnavigation=false;
-        if(savedInstanceState==null)
-        {   Intent i=new Intent(this,SplashActivity.class);
-            startActivity(i);
-            stationrequestDone=false;
+        startnavigation = false;
+        if (savedInstanceState == null) {
+            splash = onCreatSplash();
+            WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+            lp.copyFrom(splash.getWindow().getAttributes());
+            lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+            lp.height = WindowManager.LayoutParams.MATCH_PARENT;
+            splash.show();
+            splash.getWindow().setAttributes(lp);
         }
-        Log.i("lifecycle","oncreate");
-        bluetoothAdapter=BluetoothAdapter.getDefaultAdapter();
-        indexPositions=0;
-        pathRequested=false;
-        postazioni=new ArrayList<>();
-        is_ready=false;
+        if (savedInstanceState != null && !savedInstanceState.getBoolean("stationRequestDone"))
+            splash = onCreatSplash();
+        Log.i("lifecycle", "oncreate");
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        indexPositions = 0;
+        pathRequested = false;
+        postazioni = new ArrayList<>();
+        is_ready = false;
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        stazioni= new ArrayList<MarkerOptions>();
-        myLocationCircleOptions=new CircleOptions();
+        stazioni = new ArrayList<MarkerOptions>();
+        myLocationCircleOptions = new CircleOptions();
         myLocationCircleOptions.radius(10);
         myLocationCircleOptions.fillColor(Color.YELLOW);
         myLocationCircleOptions.strokeColor(Color.BLUE);
         myLocationCircleOptions.strokeWidth(2);
         if (mGoogleApiClient == null) {
-                     mGoogleApiClient = new GoogleApiClient.Builder(this)
+            // ATTENTION: This "addApi(AppIndex.API)"was auto-generated to implement the App Indexing API.
+            // See https://g.co/AppIndexing/AndroidStudio for more information.
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
                     .addConnectionCallbacks(this)
                     .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
+                    .addApi(API)
                     .enableAutoManage(this, this)
-                    .build();
-                    //as soon as map is connected
-                    mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);}
+                    .addApi(AppIndex.API).build();
+            //as soon as map is connected
+            mLastLocation = FusedLocationApi.getLastLocation(mGoogleApiClient);
+        }
+        mlocationmanager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        mLastLocation = mlocationmanager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         mPositionMarkerOption = new MarkerOptions();
         mPositionMarkerOption.icon(BitmapDescriptorFactory.fromResource(R.drawable.ncflat));
         mPositionMarkerOption.anchor(0.5f, 0.5f);
         mPositionMarkerOption.flat(true);
-        devices=(ListView)findViewById(R.id.listaDevices);
+        devices = (ListView) findViewById(R.id.listaDevices);
         //handling slidingUp panel
-        slidingUpPanelLayout=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
-        fermata = (TextView)findViewById(R.id.fermata);
-        numbicilibere = (TextView)findViewById(R.id.numbicilibere);
-        numbicioccupate = (TextView)findViewById(R.id.numbicioccupate);
-        mode=(Switch)findViewById(R.id.switchMode);
+        slidingUpPanelLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+        fermata = (TextView) findViewById(R.id.fermata);
+        numbicilibere = (TextView) findViewById(R.id.numbicilibere);
+        numbicioccupate = (TextView) findViewById(R.id.numbicioccupate);
+        mode = (Switch) findViewById(R.id.switchMode);
         /**
          * false=available station mode
          * true= available bike mode
@@ -260,59 +291,71 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
          * **/
         mode.setChecked(true);
         mode.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                    /** metodo che cambia il colore dei markers delle postazione
-                     * in base alla modalità dell'applicazione
-                     *
-                     */
-                      changeColorMode(isChecked);
-                    if(mClusterManager!=null) {
-                        for (Marker m : mClusterManager.getMarkerCollection().getMarkers()) {
-                            myrend.getClusterItem(m).setState(isChecked);
-                        }
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                /** metodo che cambia il colore dei markers delle postazione
+                 * in base alla modalità dell'applicazione
+                 *
+                 */
+                changeColorMode(isChecked);
+                if (mClusterManager != null) {
+                    for (Marker m : mClusterManager.getMarkerCollection().getMarkers()) {
+                        myrend.getClusterItem(m).setState(isChecked);
                     }
                 }
+            }
         });
 
 
-        btData= new String[3];
-        btData[0]="direzione";
-        btData[1]="stazione";
-        btData[2]="distanza";
-        contatoreBtData=0;
+        btData = new String[3];
+        btData[0] = "";
+        btData[1] = "";
+        btData[2] = "";
+        contatoreBtData = 0;
+
 
         //set location floating action button;
-        myLocation=(FloatingActionButton)findViewById(R.id.position);
-        navigation =(FloatingActionButton)findViewById(R.id.navigation);
+        myLocation = (FloatingActionButton) findViewById(R.id.position);
+        navigation = (FloatingActionButton) findViewById(R.id.navigation);
         navigation.setEnabled(false);
         navigation.setClickable(false);
-        clear=(FloatingActionButton)findViewById(R.id.clear);
+        clear = (FloatingActionButton) findViewById(R.id.clear);
         clear.setVisibility(View.GONE);
         clear.hide();
         myLocation.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                 /**controllo se gps abilitato*/
-                    locationManager=(LocationManager)getSystemService(Context.LOCATION_SERVICE);
-                    if ( !locationManager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
-                            buildAlertMessageNoGps();
-                      }
-                    mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-                    if (mLastLocation != null) {
-                            myLatitude=mLastLocation.getLatitude();
-                            myLongitude=mLastLocation.getLongitude();
-                        if(mPositionMarker!=null)
-                                mPositionMarker.remove();
-                        mPositionMarkerOption.position(new LatLng(myLatitude,myLongitude));
-                        mPositionMarker=mMap.addMarker(mPositionMarkerOption);
-                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(myLatitude,myLongitude),16),500,null);
-                        }
-
+            @Override
+            public void onClick(View v) {
+                /**controllo se gps abilitato*/
+                locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    buildAlertMessageNoGps();
                 }
+                if ((ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED))
+                    if ((ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+                        return;
+                    }
+                mLastLocation = FusedLocationApi.getLastLocation(mGoogleApiClient);
+                if (mLastLocation != null) {
+                    myLatitude = mLastLocation.getLatitude();
+                    myLongitude = mLastLocation.getLongitude();
+                    if (mPositionMarker != null)
+                        mPositionMarker.remove();
+                    mPositionMarkerOption.position(new LatLng(myLatitude, myLongitude));
+                    mPositionMarker = mMap.addMarker(mPositionMarkerOption);
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(myLatitude, myLongitude), 16), 500, null);
+                }
+
+            }
         });
-         // 5 minuti 300000
-        rateRequest=300000;
+        // 5 minuti 300000
+        rateRequest = 300000;
 
         /**
          * gestione floating button relativo alla navigazione
@@ -326,7 +369,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 clear.setVisibility(View.VISIBLE);
                 clear.setEnabled(false);
                 startnavigation = true;
-
+                dialogbo = onCreatePathDialog();
+                dialogbo.show();
             }
         });
         /**
@@ -340,17 +384,29 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 clearMap();
                 clear.setVisibility(v.INVISIBLE);
                 navigation.setVisibility(View.VISIBLE);
-                startnavigation=false;
-                btData[0]="direzione";
-                btData[1]="stazione";
-                btData[2]="distanza";
+                btData[0] = "direzione";
+                btData[1] = "stazione";
+                btData[2] = "distanza";
+                if (startnavigation) {
+                    if (connectThread != null) {
+                        if (connectThread.BtConnected()) {
+                            if (btDataThread != null)
+                                connectThread.sendData("f*");
+                            Log.i("data", btData[contatoreBtData]);
+                        }
+                    }
+                }
+                btData[0] = "";
+                btData[1] = "";
+                btData[2] = "";
+                startnavigation = false;
 
             }
         });
-        polylineList =new ArrayList<>();
+        polylineList = new ArrayList<>();
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        mDrawerList=(ListView)findViewById(R.id.drawer_items);
-        toolbar=(Toolbar)findViewById(R.id.toolbar);
+        mDrawerList = (ListView) findViewById(R.id.drawer_items);
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         assert getSupportActionBar() != null;
         getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_menu_black_18dp);
@@ -360,14 +416,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         /**
          * creazione della lista da inserire nella navigation drawer
          */
-        navigation_items= new String[]{getString(R.string.connecting),getString(R.string.login),getString(R.string.preferred), getString(R.string.about)};
-        icon_list = new int[]{R.drawable.ic_bluetooth_black_24dp,R.drawable.login,R.drawable.ic_add_location_black_24dp, R.drawable.ic_person_black_24dp};
-        MAdapterList mAdapter=new MAdapterList(this, navigation_items,icon_list);
+        navigation_items = new String[]{getString(R.string.connecting), getString(R.string.login), getString(R.string.preferred), getString(R.string.about)};
+        icon_list = new int[]{R.drawable.ic_bluetooth_black_24dp, R.drawable.login, R.drawable.ic_add_location_black_24dp, R.drawable.ic_person_black_24dp};
+        MAdapterList mAdapter = new MAdapterList(this, navigation_items, icon_list);
         mDrawerList.setAdapter(mAdapter);
         mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
-        drawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,toolbar,R.string.navigation_drawer_open, R.string.navigation_drawer_closed) {
+        drawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_closed) {
 
-           // Called when a drawer has settled in a completely closed state.
+            // Called when a drawer has settled in a completely closed state.
             public void onDrawerClosed(View view) {
                 super.onDrawerClosed(view);
                 invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
@@ -381,34 +437,31 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         };
 
 
-        HandlerThread btDataThread = new HandlerThread("HandlerThread");
+        btDataThread = new HandlerThread("HandlerThread");
         btDataThread.start();
-        final   Handler handler = new Handler(btDataThread.getLooper());
-        Runnable r= new Runnable() {
+        final Handler handler = new Handler(btDataThread.getLooper());
+        Runnable r = new Runnable() {
             @Override
             public void run() {
-               if(startnavigation)
-                   getDirection();
-              //  if (btData!=null); Log.i("data",btData[contatoreBtData]);
-                if( connectThread!=null){
+                if (startnavigation)
+                    getDirection();
+                //  if (btData!=null); Log.i("data",btData[contatoreBtData]);
+                if (connectThread != null) {
                     if (connectThread.BtConnected()) {
-                        connectThread.sendData(btData[contatoreBtData]);
-                        Log.i("data",btData[contatoreBtData]);
+                        if (contatoreBtData == 1) contatoreBtData++;
+                        connectThread.sendData(btData[contatoreBtData] + "*");
+                        Log.i("data", btData[contatoreBtData]);
                     }
                 }
 
-                Log.i("data i","contatore "+contatoreBtData);
+                Log.i("data i", "contatore " + contatoreBtData);
                 contatoreBtData++;
-                if(contatoreBtData==3) contatoreBtData=0;
-                handler.postDelayed(this, 1000);
+                if (contatoreBtData == 3) contatoreBtData = 0;
+                handler.postDelayed(this, 2000);
+
             }
         };
-
-
-        handler.post(r);
-
-
-
+        handler.postAtFrontOfQueue(r);
 
 
         /**
@@ -416,9 +469,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
          */
         DisplayMetrics displaymetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
-        autoCompleteTextView=(AutoCompleteTextView)findViewById(R.id.autocomplete);
-        suggestions=new ArrayList<String>();
-        acAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,suggestions);
+        autoCompleteTextView = (AutoCompleteTextView) findViewById(R.id.autocomplete);
+        suggestions = new ArrayList<String>();
+        acAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, suggestions);
         autoCompleteTextView.setDropDownBackgroundResource(R.color.white);
         autoCompleteTextView.setDropDownVerticalOffset(25);
         autoCompleteTextView.setDropDownWidth(displaymetrics.widthPixels);
@@ -436,28 +489,28 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         autoCompleteTextView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if(actionId==EditorInfo.IME_ACTION_SEARCH)
-                {   /**
-                    al click del tasto di ricerca la camera si sposta sulla postazione spunta lo sliding in basso col numero di fermate
-                    */
+                if (actionId == EditorInfo.IME_ACTION_SEARCH) {   /**
+                 al click del tasto di ricerca la camera si sposta sulla postazione spunta lo sliding in basso col numero di fermate
+                 */
                     autoCompleteTextView.clearFocus();
-                    station_to_reach=autoCompleteTextView.getText().toString();
-                    Log.i("toreach",station_to_reach);
-                    InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                    station_to_reach = autoCompleteTextView.getText().toString();
+                    Log.i("toreach", station_to_reach);
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
-                    for (Marker m:mClusterManager.getMarkerCollection().getMarkers()) {
-                            if( station_to_reach.equals(m.getTitle())){
-                                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(m.getPosition(), 16),500,null);
-                                fermata.setText(m.getTitle());
-                                numbicilibere.setText(String.valueOf(myrend.getClusterItem(m).getmFree()));
-                                numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
-                                slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
-                                navigation.setEnabled(true);
-                                navigation.setClickable(true);
-                                Log.i("fermata", m.getTitle());
-                                autoCompleteTextView.setText("");
-                                return true;
-                            }
+                    for (Marker m : mClusterManager.getMarkerCollection().getMarkers()) {
+                        if (station_to_reach.equals(m.getTitle())) {
+                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(m.getPosition(), 16), 500, null);
+                            fermata.setText(m.getTitle());
+                            numbicilibere.setText(String.valueOf(myrend.getClusterItem(m).getmFree()));
+                            numbicioccupate.setText(String.valueOf(myrend.getClusterItem(m).getmBikes()));
+                            slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                            navigation.setEnabled(true);
+                            navigation.setClickable(true);
+                            autoCompleteTextView.setText("");
+                            autoCompleteTextView.setHint(m.getTitle());
+                            Log.i("fermata", m.getTitle());
+                            return true;
+                        }
                     }
 
                 }
@@ -503,7 +556,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         if(myLatitude!=null&&myLocation!=null)
         outState.putParcelable("myPosition",new LatLng(myLatitude,myLongitude));
         outState.putParcelableArrayList("postazioni", (ArrayList<? extends Parcelable>) postazioni);
-         outState.putBoolean("stationRequestDone",stationrequestDone);
+        outState.putBoolean("stationRequestDone",stationrequestDone);
         outState.putString("fermata",station_to_reach);
         outState.putString("bici libere",numbicilibere.getText().toString());
         outState.putString("bicioccupate",numbicioccupate.getText().toString());
@@ -516,14 +569,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mode.setChecked(savedInstanceState.getBoolean(STATE_MODE));
         stationrequestDone=savedInstanceState.getBoolean("stationRequestDone");
-        if(mClusterManager!=null) {
-            for (Marker m : mClusterManager.getMarkerCollection().getMarkers()) {
-                myrend.getClusterItem(m).setState(mode.isChecked());
-            }
-
-        }
-        for (mMarkerPostazione m:postazioni) {
-            m.setState(mode.isChecked());}
         if(pointsPath!=null) pointsPath.clear();
         pointsPath=savedInstanceState.getParcelableArrayList("pointsPath");
         if(pointsPath!=null) Log.i("babba restore","misura del percorso  "+pointsPath.size());
@@ -535,10 +580,18 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
             postazioni.clear();
             postazioni=savedInstanceState.getParcelableArrayList("postazioni");
+        for (mMarkerPostazione m:postazioni) {
+            m.setState(mode.isChecked());
+            suggestions.add(m.getmTitle());}
+           // changeColorMode(mode.isChecked());
             fermata.setText(savedInstanceState.getString("fermata"));
             station_to_reach=savedInstanceState.getString("fermata");
             numbicilibere.setText(savedInstanceState.getString("bici libere"));
             numbicioccupate.setText(savedInstanceState.getString("bicioccupate"));
+            acAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,suggestions);
+            autoCompleteTextView.setAdapter(acAdapter);
+            autoCompleteTextView.setText(savedInstanceState.getString("fermata"));
+
     }
 
     /**
@@ -566,7 +619,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     Log.i("station",directionRequest);
                     if( connectThread!=null){
                         if (connectThread.BtConnected()) {
-                            connectThread.sendData("i" + station_to_reach);
+                            connectThread.sendData("i" + station_to_reach+"*");
                             Log.i("data station","i" + station_to_reach);
                         }
                     }
@@ -591,6 +644,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     JSONArray coord = response.getJSONArray ("coordinates");
                     DrawPath drawPath =new DrawPath(response);
                     drawPath.execute();
+
 
                     String cc[] = response.getJSONObject ("properties").toString().split("<br>");
                     Log.i("direction size",String.valueOf(cc.length));
@@ -737,7 +791,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         Log.i("distanza",String.valueOf(dist));
                     //calcolare distanza dal posizione alla fine del segmento
                        disttoDirection=calcoloDistanza(proiezioneSegmentoPiuVicino,B);
-                       Log.i("DtoNewDirection","DtoNewDirection : "+disttoDirection);
+                       Log.i("DtoNewDirection","DtoNewDirection : "+Math.round(disttoDirection));
+                    if(connectThread!=null){
+                        if (connectThread.BtConnected()) {
+                            btData[2]="p"+Math.round(disttoDirection);
+                        }
+                    }
+
                 }
 
 
@@ -793,10 +853,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 //check color for bike
                 if (isChecked) {
                     tocheck = myrend.getClusterItem(m).getmBikes();
-                    if (tocheck <= 2) {
+                    if (tocheck < 4) {
                         m.setIcon(BitmapDescriptorFactory.fromResource(bikered));
                     } else {
-                        if (tocheck <= 4) {
+                        if (tocheck < 6 ) {
                             m.setIcon(BitmapDescriptorFactory.fromResource(bikeyellow));
                         } else {
                             m.setIcon(BitmapDescriptorFactory.fromResource(bikegreen));
@@ -806,10 +866,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 //check color for station
                 else {
                     tocheck = myrend.getClusterItem(m).getmFree();
-                    if (tocheck <= 2) {
+                    if (tocheck < 4) {
                         m.setIcon(BitmapDescriptorFactory.fromResource(stationred));
                     } else {
-                        if (tocheck <= 4) {
+                        if (tocheck < 6) {
                             m.setIcon(BitmapDescriptorFactory.fromResource(stationyellow));
                         } else {
                             m.setIcon(BitmapDescriptorFactory.fromResource(stationgreen));
@@ -836,10 +896,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         Log.i("lifecycle", "onstart");
 
 
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        AppIndex.AppIndexApi.start(mGoogleApiClient, getIndexApiAction());
     }
 
     protected void onStop() {
-        super.onStop();
+        super.onStop();// ATTENTION: This was auto-generated to implement the App Indexing API.
+// See https://g.co/AppIndexing/AndroidStudio for more information.
+        AppIndex.AppIndexApi.end(mGoogleApiClient, getIndexApiAction());
         mGoogleApiClient.disconnect();
         slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
         Log.i("lifecycle", "onstop");
@@ -871,7 +936,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         // (Activity extends context, so we can pass 'this' in the constructor.)
         mClusterManager = new ClusterManager<mMarkerPostazione>(this, getMap());
         myrend=new MyClusterRenderer(this, getMap(),mClusterManager);
-        getMap().setOnCameraChangeListener(mClusterManager);
+        final CameraPosition[] mPreviousCameraPosition = {null};
+        mMap.setOnCameraIdleListener(new GoogleMap.OnCameraIdleListener() {
+            @Override
+            public void onCameraIdle() {
+                CameraPosition position = mMap.getCameraPosition();
+                if(mPreviousCameraPosition[0] == null || mPreviousCameraPosition[0].zoom != position.zoom) {
+                    mPreviousCameraPosition[0] = mMap.getCameraPosition();
+                    mClusterManager.cluster();
+                }
+            }
+        });
         getMap().setOnMarkerClickListener(mClusterManager);
         mClusterManager.setRenderer(myrend);
         mClusterManager.setOnClusterClickListener(new ClusterManager.OnClusterClickListener<mMarkerPostazione>() {
@@ -891,6 +966,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 numbicilibere.setText(String.valueOf(mMarkerPostazione.getmFree()));
                 navigation.setEnabled(true);
                 navigation.setClickable(true);
+                Log.i("asd","bici  "+mMarkerPostazione.getmBikes()+" libere   "+mMarkerPostazione.getmFree());
                 getMap().animateCamera(CameraUpdateFactory.newLatLng(mMarkerPostazione.getPosition()),500,null);
                 return true;
             }
@@ -972,7 +1048,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap = googleMap;
         Log.i("onmapready, is cheched=", " "+mode.isChecked());
         setUpClusterer();
-        changeColorMode(mode.isChecked());
+        if(stationrequestDone) changeColorMode(mode.isChecked());
         if(mClusterManager!=null) {
             for (Marker m : mClusterManager.getMarkerCollection().getMarkers()) {
                 myrend.getClusterItem(m).setState(mode.isChecked());
@@ -1002,7 +1078,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
    }
 
     public void stationRequestUpdate(){
-       tStart= System.currentTimeMillis();;
+       tStart= System.currentTimeMillis();
         JsonArrayRequest req = new JsonArrayRequest(stationRequest,
                 new Response.Listener<JSONArray>() {
                     @Override
@@ -1066,7 +1142,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void doStationRequest(){
-        stationrequestDone=true;
         Log.i("richiesta stazioni","richiesta stazioni partita");
         JsonArrayRequest req = new JsonArrayRequest(stationRequest,
                 new Response.Listener<JSONArray>() {
@@ -1088,6 +1163,21 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         MySingleton.getInstance(this).addToRequestQueue(req);
     }
 
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    public Action getIndexApiAction() {
+        Thing object = new Thing.Builder()
+                .setName("Maps Page") // TODO: Define a title for the content shown.
+                // TODO: Make sure this auto-generated URL is correct.
+                .setUrl(Uri.parse("http://[ENTER-YOUR-URL-HERE]"))
+                .build();
+        return new Action.Builder(Action.TYPE_VIEW)
+                .setObject(object)
+                .setActionStatus(Action.STATUS_TYPE_COMPLETED)
+                .build();
+    }
 
 
     private class DrawStation extends AsyncTask<Void,Void,List<mMarkerPostazione>> {
@@ -1150,8 +1240,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             mClusterManager.addItems(postazioni);
             if(!pathRequested) mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(45.0704900,7.6868200),14),500,null);
             else mMap.animateCamera(CameraUpdateFactory.newLatLng(mypositionSaved),500,null);
+            if(splash.isShowing()&&splash!=null) {
+                splash.dismiss();
+            }
+            stationrequestDone=true;
 
         }
+
+
     }
 
 
@@ -1187,6 +1283,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         protected void onPostExecute(List<LatLng> pointsPath) {
             super.onPostExecute(pointsPath);
+            if(dialogbo!=null) dialogbo.dismiss();
             putPathOnMap();
             if(mMap!=null) mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(myLatitude,myLongitude),16),1000,null);
 
@@ -1233,7 +1330,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                   near_station=d;}
         }
         station_to_reach=near_Station_name;
-        btData[1]="s"+station_to_reach;
+        if( connectThread!=null) {
+            if (connectThread.BtConnected()) {
+                connectThread.sendData("f*");
+                Log.i("data","f");
+            }
+        }
         findRoute();
 
 
@@ -1246,7 +1348,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onConnected(Bundle bundle) {
         Log.i("lifecycle", "onconnected");
         //as soon as map is connected
-        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        mLastLocation = FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (mLastLocation != null) {
             myLatitude=mLastLocation.getLatitude();
              myLongitude=mLastLocation.getLongitude();
@@ -1274,7 +1376,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         builder.setTitle("Attivazione GPS");
         builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
             public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-                startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
             }
         })
                 .setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -1288,11 +1390,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     protected void startLocationUpdates() {
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+        if(FusedLocationApi!=null)
+            FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
     }
 
     protected void stopLocationUpdates() {
-        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+        if(FusedLocationApi!=null)
+             FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
     }
 
     public void onLocationChanged(Location location) {
@@ -1321,13 +1425,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }else {
             //dato il segmento corrente ed il successivo mi calcolo la direzione  di svolta
             if (listasegmenti != null) {
-                ArrayList<LatLng> currentSegment = listasegmenti.get(indexPositions);
+               ArrayList<LatLng> currentSegment = listasegmenti.get(indexPositions);
                 if(indexPositions==listasegmenti.size()-1){
                     Log.i("svolta","stai arrivando, mancano solo "+disttoDirection+"m");
                     if( connectThread!=null) {
-
                         if (connectThread.BtConnected()) {
-                            connectThread.sendData("f");
+                            connectThread.sendData("f*");
                             Log.i("data","f");
                             btData[2] = "p" + disttoDirection;
                         }
@@ -1344,7 +1447,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                      seno = pv(nextVector,currentVector)/promod;
                     Log.i("svolta", " seno " + seno + " " + " coseno  " + coseno);
                     Log.i("svolta tra ",disttoDirection +"  m");
-                    btData[2]="p"+disttoDirection;
+                    if(connectThread!=null){
+                        if (connectThread.BtConnected()) {
+                            btData[2]="p"+ Math.round(disttoDirection);
+                        }
+                    }
                     if (seno > 0 && coseno<0) {
                                 //svolto a qualsiasi destra
 
@@ -1498,7 +1605,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     //handling  the navigation drawer's click
-    private class DrawerItemClickListener implements android.widget.AdapterView.OnItemClickListener {
+    private class DrawerItemClickListener implements AdapterView.OnItemClickListener {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
             selectItemNavigation(position);
@@ -1575,5 +1682,29 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         return builder.create();
     }
 
+
+
+    public Dialog onCreatePathDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        // Get the layout inflater
+        LayoutInflater inflater = this.getLayoutInflater();
+        // Inflate and set the layout for the dialog
+        // Pass null as the parent view because its going in the dialog layout
+        builder.setView(inflater.inflate(R.layout.pathprogressbar, null));
+        builder.setCustomTitle(LayoutInflater.from(this).inflate(R.layout.titlepathdialog, null));
+        return builder.create();
+
+    }
+
+    public Dialog onCreatSplash(){
+        AlertDialog.Builder builder=new AlertDialog.Builder(this);
+        LayoutInflater inflater = this.getLayoutInflater();
+        builder.setView(inflater.inflate(R.layout.activity_splash, null));
+        return  builder.create();
+    }
+
 }
+
+
+
 

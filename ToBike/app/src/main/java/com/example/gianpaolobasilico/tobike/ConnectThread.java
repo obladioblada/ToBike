@@ -63,6 +63,8 @@ public class ConnectThread implements Runnable{
         byte[] msgBuffer=msg.getBytes();
         ConnectedThread connectedThread=new ConnectedThread(bluetoothSocket);
         connectedThread.write(msgBuffer);
+        Log.i("senddata",msg);
+
     }
 
     public boolean BtConnected(){

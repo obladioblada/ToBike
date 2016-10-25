@@ -5,6 +5,7 @@
     android:background="@color/colorPrimary"
     android:gravity="center"
     android:layout_gravity="center"
+
     >
 
     <LinearLayout
@@ -14,6 +15,7 @@
         android:weightSum="1"
         android:layout_gravity="center"
         android:gravity="center"
+        android:padding="10dp"
         >
 
         <ImageView
@@ -32,9 +34,9 @@
             android:layout_width="0dp"
             android:layout_height="36dp"
             android:text="Looking For Devices"
-            android:textSize="22dp"
+            android:textSize="20dp"
             android:textColor="@color/colorButtons"
-            android:textStyle="normal|bold"
+            android:textStyle="normal"
             android:layout_gravity="center"
             android:gravity="center"
             android:layout_weight="0.8"
@@ -42,19 +44,24 @@
             />
 
 
-
-
-
+           <ProgressBar
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:indeterminate="true"
+                android:indeterminateTint="@color/colorButtons"
+                android:paddingRight="4dp"
+                android:paddingLeft="4dp"
+                android:id="@+id/btprogressBar"/>
 
     </LinearLayout>
 
 
     <View
-        android:layout_width="match_parent"
-        android:layout_height="4dp"
-        android:background="@color/colorButtons"
-        android:layout_marginTop="10dp"
-        />
+    android:layout_width="match_parent"
+    android:layout_height="4dp"
+    android:background="@color/colorButtons"
+    android:layout_marginTop="5dp"
+    />
 
 
 

@@ -55,14 +55,42 @@
 
     <TextView
         android:layout_width="wrap_content"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:id="@+id/Descrizione"
-        android:text="@string/chi_siamo"
+        android:id="@+id/gianemail"
+        android:text="gianpaolo.basilico@gmail.com"
+        android:autoLink="email"
         android:textColor="@color/white"
         android:layout_below="@+id/versione"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="false"
         android:layout_marginTop="48dp"
         android:layout_alignParentEnd="false" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:id="@+id/giuemail"
+        android:text="peppemini@gmail.com"
+        android:autoLink="email"
+        android:textColor="@color/white"
+        android:layout_below="@+id/gianemail"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="false"
+        android:layout_marginTop="48dp"
+        android:layout_alignParentEnd="false" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:id="@+id/amundemail"
+        android:text="amundvedal@gmail.com"
+        android:autoLink="email"
+        android:textColor="@color/white"
+        android:layout_below="@+id/giuemail"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="false"
+        android:layout_marginTop="48dp"
+        android:layout_alignParentEnd="false" />
+
 </RelativeLayout>

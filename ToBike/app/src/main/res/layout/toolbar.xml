@@ -19,5 +19,6 @@
                 android:background="@android:color/transparent"
                 android:inputType="textAutoCorrect"
                 android:imeOptions="actionSearch"
+                android:gravity="center"
                 />
         </android.support.v7.widget.Toolbar>
